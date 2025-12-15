@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Ukulele Scroll Trainer (Web)</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="title">Ukulele Scroll Trainer</div>
+    <div class="sub">iPhone対応・URL配布OK（GitHub Pages向け）</div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel">
+      <div class="row">
+        <button id="btnLoad" class="btn">譜面読み込み</button>
+        <button id="btnMic" class="btn">マイク許可</button>
+        <button id="btnStart" class="btn primary" disabled>スタート</button>
+        <button id="btnStop" class="btn" disabled>停止</button>
+      </div>
+
+      <div class="row small">
+        <label>判定感度（大きいほど厳しい）</label>
+        <input id="thSlider" type="range" min="2" max="20" value="8" />
+        <span id="thVal">8</span>
+      </div>
+
+      <div class="row small">
+        <label>判定ウィンドウ（ms）</label>
+        <input id="winSlider" type="range" min="80" max="400" value="180" />
+        <span id="winVal">180</span>
+      </div>
+
+      <div class="row small">
+        <div class="hint">
+          使い方：①譜面読み込み → ②マイク許可 → ③スタート → 判定ラインで「ジャラン」と鳴らす
+        </div>
+      </div>
+    </section>
+
+    <section class="stage">
+      <canvas id="cv"></canvas>
+      <div class="overlay">
+        <div class="judgeLine"></div>
+        <div id="status" class="status">待機中</div>
+        <div id="score" class="score">OK: 0 / NG: 0</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <details>
+        <summary>うまく動かないとき（iPhone）</summary>
+        <ul>
+          <li>必ず https のURLで開く（GitHub Pages等）</li>
+          <li>「マイク許可」を押した直後に許可ダイアログが出ます</li>
+          <li>iPhoneはマナーモードでもOK（マイクは関係なし）</li>
+          <li>静かすぎる/判定が出ない→感度を下げる（スライダを左へ）</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
