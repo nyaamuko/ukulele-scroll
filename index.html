@@ -17,38 +17,32 @@
         <div class="timer">
           <span class="timer__icon">⏱</span>
           <span class="timer__text">残り</span>
-          <span class="timer__value" id="timerValue">3.2</span>
+          <span class="timer__value" id="timerValue">--</span>
           <span class="timer__unit">秒</span>
         </div>
       </div>
     </header>
 
     <main class="stage2">
-      <!-- 背景のふわふわコード文字 -->
-      <div class="bgCode" id="bgCode">C</div>
+      <div class="bgCode wobble" id="bgCode">C</div>
 
-      <!-- 指位置オーバーレイ（うっすら） -->
       <section class="fretOverlay" aria-label="Chord overlay">
         <div class="overlayTitle">
           <span class="overlayTitle__hint">押さえる位置</span>
           <span class="overlayTitle__code" id="codeLabel">C</span>
         </div>
 
-        <!-- 4弦（上）→1弦（下）のイメージ -->
-        <div class="stringsGrid" id="stringsGrid">
-          <!-- JSで生成 -->
-        </div>
+        <div class="stringsGrid" id="stringsGrid"></div>
 
         <div class="overlayNote">
-          ※これは “静的モック” です（判定はまだ）
+          ※静的モック（判定はまだ） / 「指位置：うっすら/濃い」ボタンで濃さ変更
         </div>
       </section>
 
-      <!-- 下部の指示（アメコミ吹き出し風） -->
       <section class="prompt">
         <div class="speech">
           <div class="speech__title" id="phaseTitle">READY!</div>
-          <div class="speech__text" id="phaseText">このコードを構えてね</div>
+          <div class="speech__text" id="phaseText">読み込み中…</div>
         </div>
 
         <div class="controls">
@@ -61,22 +55,20 @@
           <button class="chip" id="toggleOverlayBtn">指位置：うっすら/濃い</button>
           <button class="chip" id="toggleWobbleBtn">背景：ふわふわ ON/OFF</button>
         </div>
+
+        <div class="debug" id="debug"></div>
       </section>
 
-      <!-- 演出テキスト（成功/失敗の置き場） -->
       <div class="comicBurst" id="burst" hidden>
         <div class="comicBurst__text">OK!!</div>
       </div>
     </main>
 
     <footer class="bottombar">
-      <div class="bottombar__hint">
-        iPhone縦画面想定 / アメコミ風UI（静的モック）
-      </div>
+      <div class="bottombar__hint">iPhone縦画面想定 / アメコミ風UI（静的モック）</div>
     </footer>
   </div>
 
-  <script src="notes.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

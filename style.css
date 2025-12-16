@@ -1,22 +1,15 @@
 :root{
   --bg: #0b0f1a;
-  --panel: rgba(255,255,255,0.06);
-  --panel2: rgba(255,255,255,0.10);
   --line: rgba(255,255,255,0.12);
   --text: #f5f7ff;
   --muted: rgba(245,247,255,0.7);
   --accent: #ffef5a;
   --accent2: #7cf7ff;
-  --danger: #ff4d6d;
-
   --shadow: 0 10px 30px rgba(0,0,0,0.35);
-  --radius: 18px;
   --radius2: 24px;
-
   --safeTop: env(safe-area-inset-top);
   --safeBottom: env(safe-area-inset-bottom);
 }
-
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
@@ -28,7 +21,6 @@ body{
   align-items:center;
   justify-content:center;
 }
-
 .phone{
   width: min(430px, 100vw);
   height: min(900px, 100vh);
@@ -42,8 +34,6 @@ body{
   border: 1px solid rgba(255,255,255,0.10);
   background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
 }
-
-/* Topbar */
 .topbar{
   display:flex;
   justify-content:space-between;
@@ -53,15 +43,8 @@ body{
   backdrop-filter: blur(10px);
   background: rgba(0,0,0,0.25);
 }
-.topbar__left{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
 .badge{
   display:inline-flex;
-  align-items:center;
-  justify-content:center;
   padding: 7px 10px;
   border-radius: 999px;
   background: rgba(255,239,90,0.18);
@@ -71,12 +54,7 @@ body{
   letter-spacing: 0.5px;
   font-size: 12px;
 }
-.subtitle{
-  font-weight: 900;
-  font-size: 18px;
-}
-.topbar__right{ padding-top: 2px; }
-
+.subtitle{ font-weight: 900; font-size: 18px; margin-top:6px; }
 .timer{
   display:flex;
   gap:6px;
@@ -88,12 +66,8 @@ body{
   color: var(--accent2);
   font-weight: 900;
 }
-.timer__icon{ font-size: 14px; }
-.timer__text{ font-size: 12px; opacity: 0.9; }
 .timer__value{ font-size: 18px; }
-.timer__unit{ font-size: 12px; opacity: 0.9; }
-
-/* Main stage */
+.timer__text,.timer__unit{ font-size:12px; opacity:.9; }
 .stage2{
   position:relative;
   flex:1;
@@ -103,39 +77,31 @@ body{
   gap: 14px;
   overflow:hidden;
 }
-
-/* ふわふわ背景文字 */
 .bgCode{
   position:absolute;
   left:50%;
   top: 38%;
   transform: translate(-50%,-50%);
-  font-size: 180px;
+  font-size: 190px;
   font-weight: 1000;
   letter-spacing: 3px;
-  opacity: 0.16;
+  opacity: 0.18;
   color: #ffffff;
   filter: blur(0.8px);
-  text-shadow:
-    0 0 24px rgba(255,255,255,0.18),
-    0 0 70px rgba(124,247,255,0.10);
+  text-shadow: 0 0 24px rgba(255,255,255,0.18), 0 0 70px rgba(124,247,255,0.10);
   pointer-events:none;
   user-select:none;
+  z-index: 1;
 }
-
-/* ふわふわON */
-.bgCode.wobble{
-  animation: wobble 3.8s ease-in-out infinite;
-}
+.bgCode.wobble{ animation: wobble 3.8s ease-in-out infinite; }
 @keyframes wobble{
-  0%   { transform: translate(-50%,-50%) rotate(-1deg) translateY(-4px); }
-  50%  { transform: translate(-50%,-50%) rotate( 1deg) translateY( 6px); }
-  100% { transform: translate(-50%,-50%) rotate(-1deg) translateY(-4px); }
+  0%{ transform: translate(-50%,-50%) rotate(-1deg) translateY(-4px); }
+  50%{ transform: translate(-50%,-50%) rotate(1deg) translateY(6px); }
+  100%{ transform: translate(-50%,-50%) rotate(-1deg) translateY(-4px); }
 }
-
-/* 弦＋指位置オーバーレイ */
 .fretOverlay{
   position:relative;
+  z-index: 2;
   margin-top: 6px;
   padding: 14px 14px 12px;
   border-radius: var(--radius2);
@@ -143,37 +109,22 @@ body{
   background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
   backdrop-filter: blur(10px);
 }
-
 .overlayTitle{
   display:flex;
   align-items:baseline;
   justify-content:space-between;
   margin-bottom: 10px;
 }
-.overlayTitle__hint{
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 800;
-}
-.overlayTitle__code{
-  font-size: 18px;
-  font-weight: 1000;
-  color: var(--accent);
-  letter-spacing: 1px;
-}
-
-/* 弦グリッド（4弦→1弦） */
+.overlayTitle__hint{ font-size: 12px; color: var(--muted); font-weight: 800; }
+.overlayTitle__code{ font-size: 18px; font-weight: 1000; color: var(--accent); letter-spacing: 1px; }
 .stringsGrid{
   display:flex;
   flex-direction:column;
   gap: 12px;
-  opacity: 0.35; /* うっすら */
+  opacity: 0.35;
   transition: opacity 180ms ease;
 }
-.stringsGrid.strong{
-  opacity: 0.75; /* 濃い */
-}
-
+.stringsGrid.strong{ opacity: 0.80; }
 .stringRow{
   position:relative;
   padding: 6px 8px;
@@ -181,8 +132,6 @@ body{
   background: rgba(0,0,0,0.18);
   border: 1px solid rgba(255,255,255,0.08);
 }
-
-/* 弦線（横線） */
 .stringLine{
   position:absolute;
   left: 72px;
@@ -193,8 +142,6 @@ body{
   background: rgba(255,255,255,0.40);
   border-radius: 999px;
 }
-
-/* 弦ラベル */
 .stringLabel{
   width: 62px;
   font-size: 12px;
@@ -208,8 +155,6 @@ body{
   font-weight: 800;
   margin-top: 2px;
 }
-
-/* 指ドット（●） */
 .fingers{
   position:relative;
   margin-left: 72px;
@@ -237,29 +182,15 @@ body{
   color: var(--accent);
   box-shadow: 0 0 0 6px rgba(255,239,90,0.10);
 }
-
-/* “開放弦”の○ */
-.dot.open{
-  border-style: dashed;
-  opacity: 0.7;
-}
-
-/* 注記 */
-.overlayNote{
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* 下部プロンプト */
+.dot.open{ border-style: dashed; opacity: 0.7; }
+.overlayNote{ margin-top: 10px; font-size: 12px; color: var(--muted); }
 .prompt{
   margin-top:auto;
   display:flex;
   flex-direction:column;
   gap: 10px;
+  z-index: 3;
 }
-
-/* 吹き出し（アメコミ） */
 .speech{
   position:relative;
   padding: 14px 14px 12px;
@@ -280,23 +211,9 @@ body{
   border-bottom: 2px solid rgba(255,255,255,0.20);
   transform: rotate(45deg);
 }
-.speech__title{
-  font-size: 18px;
-  font-weight: 1000;
-  letter-spacing: 1px;
-}
-.speech__text{
-  margin-top: 6px;
-  font-size: 14px;
-  color: rgba(255,255,255,0.92);
-  font-weight: 800;
-}
-
-/* ボタン */
-.controls{
-  display:flex;
-  gap:10px;
-}
+.speech__title{ font-size: 18px; font-weight: 1000; letter-spacing: 1px; }
+.speech__text{ margin-top: 6px; font-size: 14px; color: rgba(255,255,255,0.92); font-weight: 800; }
+.controls{ display:flex; gap:10px; }
 .btn{
   width:100%;
   border:none;
@@ -316,13 +233,7 @@ body{
   color: var(--text);
   border: 1px solid rgba(255,255,255,0.20);
 }
-
-/* 小さなチップ */
-.smallControls{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-}
+.smallControls{ display:flex; flex-wrap:wrap; gap:8px; }
 .chip{
   border:none;
   padding: 10px 12px;
@@ -334,37 +245,11 @@ body{
   font-size: 12px;
   cursor:pointer;
 }
-
-/* 成功/演出の置き場（アメコミ バースト） */
-.comicBurst{
-  position:absolute;
-  left: 50%;
-  top: 55%;
-  transform: translate(-50%,-50%) rotate(-6deg);
-  padding: 18px 22px;
-  border-radius: 16px;
-  background: radial-gradient(circle at 30% 30%, rgba(255,239,90,1), rgba(255,120,0,1));
-  border: 3px solid rgba(0,0,0,0.45);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.35);
-}
-.comicBurst__text{
-  font-size: 34px;
-  font-weight: 1000;
-  color:#111;
-  letter-spacing: 1px;
-  text-shadow: 0 2px 0 rgba(255,255,255,0.35);
-}
-
-/* Bottom bar */
+.debug{ margin-top: 6px; font-size: 12px; color: rgba(255,255,255,0.75); }
 .bottombar{
   padding: 10px 14px;
   border-top: 1px solid var(--line);
   background: rgba(0,0,0,0.25);
   backdrop-filter: blur(10px);
 }
-.bottombar__hint{
-  text-align:center;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
+.bottombar__hint{ text-align:center; color: var(--muted); font-size: 12px; font-weight: 800; }

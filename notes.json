@@ -1,52 +1,336 @@
-// notes.js
-// STAGE2 静的モック用：コードと「うっすら指位置」データ
-// 弦の並び：上から 4弦(G) / 3弦(C) / 2弦(E) / 1弦(A)
-// ここでは “雰囲気合わせの表示” 用なので、まず代表4コードだけ。
-
-const STAGE2_CODES = [
-  {
-    code: "C",
-    // 各弦に「4つの点（フレット位置イメージ）」を並べる：open / finger
-    // dots: [{type:"open"|"on", label:"1".."4"|""}, ...]
-    strings: [
-      { name: "4弦", note: "G", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"open"}] },
-      { name: "3弦", note: "C", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"on", label:"3"}] }, // 3フレット想定
-      { name: "2弦", note: "E", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"open"}] },
-      { name: "1弦", note: "A", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"open"}] },
-    ]
-  },
-  {
-    code: "Am",
-    strings: [
-      { name: "4弦", note: "G", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"open"}] },
-      { name: "3弦", note: "C", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"open"}] },
-      { name: "2弦", note: "E", dots: [{type:"on", label:"2"},{type:"open"},{type:"open"},{type:"open"}] }, // 2フレット想定
-      { name: "1弦", note: "A", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"open"}] },
-    ]
-  },
-  {
-    code: "F",
-    strings: [
-      { name: "4弦", note: "G", dots: [{type:"on", label:"2"},{type:"open"},{type:"open"},{type:"open"}] }, // 2フレット
-      { name: "3弦", note: "C", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"open"}] },
-      { name: "2弦", note: "E", dots: [{type:"on", label:"1"},{type:"open"},{type:"open"},{type:"open"}] }, // 1フレット
-      { name: "1弦", note: "A", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"open"}] },
-    ]
-  },
-  {
-    code: "G",
-    strings: [
-      { name: "4弦", note: "G", dots: [{type:"open"},{type:"open"},{type:"open"},{type:"open"}] },
-      { name: "3弦", note: "C", dots: [{type:"on", label:"2"},{type:"open"},{type:"open"},{type:"open"}] },
-      { name: "2弦", note: "E", dots: [{type:"on", label:"3"},{type:"open"},{type:"open"},{type:"open"}] },
-      { name: "1弦", note: "A", dots: [{type:"on", label:"1"},{type:"open"},{type:"open"},{type:"open"}] },
-    ]
-  }
-];
-
-// フェーズ（文字が速すぎ問題を “設計で” 解消するための固定時間）
-const STAGE2_PHASES = [
-  { title: "READY!", text: "このコードを構えてね", seconds: 1.5 },
-  { title: "SET!",   text: "指を置いたら深呼吸",   seconds: 1.0 },
-  { title: "PLAY!",  text: "時間内に鳴らして！",   seconds: 4.0 }
-];
+{
+  "STAGE2_CODES": [
+    {
+      "code": "C",
+      "strings": [
+        {
+          "name": "4弦",
+          "note": "G",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "3弦",
+          "note": "C",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "on",
+              "label": "3"
+            }
+          ]
+        },
+        {
+          "name": "2弦",
+          "note": "E",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "1弦",
+          "note": "A",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "Am",
+      "strings": [
+        {
+          "name": "4弦",
+          "note": "G",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "3弦",
+          "note": "C",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "2弦",
+          "note": "E",
+          "dots": [
+            {
+              "type": "on",
+              "label": "2"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "1弦",
+          "note": "A",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "F",
+      "strings": [
+        {
+          "name": "4弦",
+          "note": "G",
+          "dots": [
+            {
+              "type": "on",
+              "label": "2"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "3弦",
+          "note": "C",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "2弦",
+          "note": "E",
+          "dots": [
+            {
+              "type": "on",
+              "label": "1"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "1弦",
+          "note": "A",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "G",
+      "strings": [
+        {
+          "name": "4弦",
+          "note": "G",
+          "dots": [
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "3弦",
+          "note": "C",
+          "dots": [
+            {
+              "type": "on",
+              "label": "2"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "2弦",
+          "note": "E",
+          "dots": [
+            {
+              "type": "on",
+              "label": "3"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        },
+        {
+          "name": "1弦",
+          "note": "A",
+          "dots": [
+            {
+              "type": "on",
+              "label": "1"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            },
+            {
+              "type": "open"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "STAGE2_PHASES": [
+    {
+      "title": "READY!",
+      "text": "このコードを構えてね",
+      "seconds": 1.5
+    },
+    {
+      "title": "SET!",
+      "text": "指を置いたら深呼吸",
+      "seconds": 1.0
+    },
+    {
+      "title": "PLAY!",
+      "text": "時間内に鳴らして！",
+      "seconds": 4.0
+    }
+  ]
+}
