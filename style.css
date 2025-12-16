@@ -30,7 +30,7 @@ body{
 
 .phone{
   width: min(430px, 100vw);
-  height: 100svh;
+  height: 100dvh;
   max-height: 920px;
   padding-top: var(--safeTop);
   padding-bottom: var(--safeBottom);
@@ -85,7 +85,12 @@ body{
 .stage2{
   position:relative;
   flex:1;
-  padding: 12px 12px 10px;
+  padding: 12px 12px 6px;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+  overflow:hidden;
+}
   display:flex;
   flex-direction:column;
   gap: 10px;
@@ -421,15 +426,16 @@ body{
 .comicBurst.miss .comicBurst__text{ color:#13060a; }
 
 .bottombar{
-  padding: 9px 12px;
-  border-top: 1px solid var(--line);
+  padding: 8px 12px calc(8px + var(--safeBottom));
+border-top: 1px solid var(--line);
   background: rgba(0,0,0,0.25);
   backdrop-filter: blur(10px);
 }
-.bottombar__hint{ text-align:center; color: var(--muted); font-size: 12px; font-weight: 800; }
+.bottombar__hint{ text-align:center; color: var(--muted); font-size: 11px; font-weight: 800; }
 
 .debug{
-  font-size: 11px;
+  margin-top: 6px;
+  font-size: 10px;
   color: rgba(255,255,255,0.72);
   padding: 7px 9px;
   border-radius: 12px;
