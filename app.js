@@ -1,19 +1,12 @@
-// app.js (v3)
-// 目的：左手の指先発光を “リアルタイム” にする
-// - コードが切り替わったら「使う指」を自動発光
-// - フレット上のマーカー（人/中/薬/小）を “触る/ホバー/タップ” すると、その指が即発光
-// - 左手の指（人/中/薬/小）をタップしても発光（練習用）
-// - 発光リセットで「コードが要求する指」に戻す
-
+// app.js (v4 clean)
 let state = {
   items: [],
   idx: 0,
   phaseIdx: 0,
-  overlayLevel: 1, // 0=soft,1=mid,2=strong
-  wobbleLevel: 2,  // 0=off,1=mid,2=strong
-  // realtime highlight
-  lockFinger: null, // "人"|"中"|"薬"|"小"|null
-  chordFingers: new Set(), // current chord used fingers
+  overlayLevel: 1,
+  wobbleLevel: 2,
+  lockFinger: null,
+  chordFingers: new Set(),
 };
 
 const bgCode = document.getElementById("bgCode");
@@ -101,7 +94,6 @@ function marker(type, label, finger){
     m.dataset.finger = finger || "";
     m.setAttribute("role","button");
     m.setAttribute("tabindex","0");
-    m.title = `指：${finger}`;
   }
   return m;
 }
@@ -122,7 +114,6 @@ function getUsedFingers(arr){
 }
 
 function applyCurrentGlow(){
-  // lockFinger has priority
   if (state.lockFinger){
     setFingerGlow(new Set([state.lockFinger]));
   } else {
@@ -133,8 +124,8 @@ function applyCurrentGlow(){
 function addStringLines(){
   fretboard.querySelectorAll(".stringLine").forEach(n => n.remove());
 
-  const rowH = 56;
-  const gap = 10;
+  const rowH = 54;
+  const gap = 9;
   for (let r=0; r<4; r++){
     const y = r*(rowH+gap) + rowH/2;
     const line = document.createElement("div");
@@ -144,14 +135,12 @@ function addStringLines(){
   }
 }
 
-// highlight markers belonging to a finger (visual)
 function setMarkerGlow(finger){
   fretboard.querySelectorAll(".marker.on").forEach(m => {
     const f = m.dataset.finger || "";
     m.classList.toggle("glow", finger && f === finger);
   });
 }
-
 function clearMarkerGlow(){
   fretboard.querySelectorAll(".marker.on").forEach(m => m.classList.remove("glow"));
 }
@@ -159,18 +148,18 @@ function clearMarkerGlow(){
 function renderFretboard(item){
   const maxFret = item.maxFret ?? 5;
 
-  fretboard.style.gridTemplateColumns = `50px repeat(${maxFret}, 1fr)`;
-  fretboard.style.gridTemplateRows = `repeat(4, 56px)`;
+  fretboard.style.gridTemplateColumns = `46px repeat(${maxFret}, 1fr)`;
+  fretboard.style.gridTemplateRows = `repeat(4, 54px)`;
   fretboard.innerHTML = "";
 
   buildFretNums(maxFret);
 
-  const strings = item.strings; // 1弦→4弦
+  const strings = item.strings;
   const frets = item.frets;
   const fingers = item.fingers || ["","","",""];
 
   state.chordFingers = getUsedFingers(fingers);
-  state.lockFinger = null; // chord change resets lock
+  state.lockFinger = null;
   applyCurrentGlow();
 
   for (let r=0; r<4; r++){
@@ -215,7 +204,7 @@ function render(){
   applyOverlay();
   applyWobble();
 
-  setDebug(`OK: notes.json 読込 / CODE=${item.code} / idx=${state.idx+1}/${state.items.length}`);
+  setDebug(`OK: CODE=${item.code} / ${state.idx+1}/${state.items.length}`);
 }
 
 function showBurst(text, isMiss=false){
@@ -227,27 +216,12 @@ function showBurst(text, isMiss=false){
   showBurst._t = window.setTimeout(() => { burst.hidden = true; }, 950);
 }
 
-function setRealtimeFinger(finger, lock=false){
-  if (!finger) return;
-  if (lock){
-    state.lockFinger = (state.lockFinger === finger) ? null : finger;
-  } else {
-    // temporary highlight while hovering/touching (only if not locked)
-    if (state.lockFinger) return;
-    state.lockFinger = finger;
-    // but don't keep it: this is for "touchstart" w/out lock? We'll clear on pointerup/cancel
-  }
-  applyCurrentGlow();
-  setMarkerGlow(state.lockFinger || "");
-}
-
 function resetRealtime(){
   state.lockFinger = null;
   applyCurrentGlow();
   clearMarkerGlow();
 }
 
-// ---- Events
 prevBtn.addEventListener("click", () => {
   state.idx = (state.idx - 1 + state.items.length) % state.items.length;
   render();
@@ -272,12 +246,11 @@ demoOkBtn.addEventListener("click", () => showBurst("OK!!", false));
 demoNgBtn.addEventListener("click", () => showBurst("MISS!", true));
 clearHoverBtn.addEventListener("click", () => resetRealtime());
 
-// Left hand buttons = lock toggle
+// left hand: click to lock/unlock
 document.querySelectorAll(".finger").forEach(btn => {
   btn.addEventListener("click", () => {
     const f = btn.dataset.f || "";
     if (!f) return;
-    // lock/unlock
     state.lockFinger = (state.lockFinger === f) ? null : f;
     applyCurrentGlow();
     setMarkerGlow(state.lockFinger || "");
@@ -285,7 +258,7 @@ document.querySelectorAll(".finger").forEach(btn => {
   });
 });
 
-// Fretboard marker interactions
+// fretboard marker interactions
 fretboard.addEventListener("pointerover", (e) => {
   const m = e.target.closest(".marker.on");
   if (!m) return;
@@ -299,33 +272,20 @@ fretboard.addEventListener("pointerover", (e) => {
 fretboard.addEventListener("pointerout", (e) => {
   const m = e.target.closest(".marker.on");
   if (!m) return;
-  if (state.lockFinger) {
-    // if locked by finger buttons or click, don't clear on out
-    // We can't perfectly distinguish; use heuristic: if any finger button is "locked", keep.
-    // We'll treat lock only when marker click toggles; for hover we set lockFinger but clear here.
-    // So clear only if the out came from hover-mode: we clear always when pointerout and no marker click happened.
-  }
-  // Clear to chord fingers unless user has locked via finger buttons (handled above) -> lockFinger will not be null in that case.
-  // For hover-mode we always clear.
   state.lockFinger = null;
   applyCurrentGlow();
   clearMarkerGlow();
 });
-
-// Tap/click a marker -> lock toggle to that finger
 fretboard.addEventListener("click", (e) => {
   const m = e.target.closest(".marker.on");
   if (!m) return;
   const f = m.dataset.finger || "";
   if (!f) return;
-  // toggle lock finger
   state.lockFinger = (state.lockFinger === f) ? null : f;
   applyCurrentGlow();
   setMarkerGlow(state.lockFinger || "");
   if (!state.lockFinger) clearMarkerGlow();
 });
-
-// Keyboard (enter/space) on focused marker
 fretboard.addEventListener("keydown", (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;
   const m = e.target.closest(".marker.on");
@@ -339,10 +299,10 @@ fretboard.addEventListener("keydown", (e) => {
   if (!state.lockFinger) clearMarkerGlow();
 });
 
-// Load notes.json
+// Load
 async function init(){
   try{
-    setDebug("loading notes.json…");
+    setDebug("loading…");
     const res = await fetch("./notes.json", { cache: "no-store" });
     if (!res.ok) throw new Error(`fetch notes.json failed: ${res.status}`);
     const data = await res.json();
@@ -351,7 +311,7 @@ async function init(){
     render();
   }catch(e){
     console.error(e);
-    setDebug("ERROR: notes.json 読込失敗（https/localhost で開いているか確認）");
+    setDebug("ERROR: notes.json 読込失敗");
   }
 }
 init();
