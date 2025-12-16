@@ -1,85 +1,127 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>GAME - Ukulele Trainer (Prototype)</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>UkeFlow Pulse Trainer</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div id="app">
-    <h1>🎸 ウクレレ GAME</h1>
-
-    <section class="card">
-      <h2>1) マイク</h2>
-      <p class="small">
-        マイクを許可すると、弾いた音を検出してチューニング判定します。<br/>
-        うまく検出できない場合は「単音でゆっくり」「口に近い位置」「周囲を静かに」を試してください。
-      </p>
-
-      <div class="row">
-        <button id="micBtn">🎤 マイク開始</button>
-        <button id="micStopBtn" class="secondary" disabled>停止</button>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">UkeFlow</div>
+      <div class="meta">
+        <div class="title">Pulse Trainer</div>
+        <div class="sub">STAGE 1: Tuning → STAGE 2: Pulse Game</div>
       </div>
-
-      <div class="meterWrap">
-        <div class="meterLabel">入力レベル</div>
-        <div class="meter">
-          <div id="levelBar" class="levelBar"></div>
-        </div>
-      </div>
-
-      <div class="statusGrid">
-        <div class="statusItem">
-          <div class="label">検出Hz</div>
-          <div id="hzText" class="value">--</div>
-        </div>
-        <div class="statusItem">
-          <div class="label">判定</div>
-          <div id="judgeText" class="value">--</div>
-        </div>
-        <div class="statusItem">
-          <div class="label">cents</div>
-          <div id="centsText" class="value">--</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>2) チューニング（必須）</h2>
-      <p class="small">4弦 G / 3弦 C / 2弦 A / 1弦 E が全部OKになるまで進めません。</p>
-
-      <div id="strings" class="strings"></div>
-
-      <div class="hint">
-        <div class="hintTitle">コツ</div>
-        <ul>
-          <li>弦を1本だけ弾く（同時に鳴らさない）</li>
-          <li>強く弾きすぎない（歪むと検出が乱れます）</li>
-          <li>「今の弦」をタップして切り替えできます</li>
-        </ul>
-      </div>
-    </section>
-
-    <div id="stageBanner"></div>
-
-    <section id="stage" class="card hidden">
-      <h2 id="stageTitle">STAGE 1</h2>
-      <p id="stageText">1弦 E を鳴らしてみよう</p>
-      <div class="row">
-        <button id="retryBtn" class="secondary">STAGE 1 やり直し</button>
-      </div>
-      <div id="stageResult" class="stageResult"></div>
-    </section>
-
-    <button id="startBtn" class="primary" disabled>START（チューニング完了で解除）</button>
-
-    <div class="footer small">
-      Prototype v1（マイク判定入り）
     </div>
-  </div>
+  </header>
 
-  <script src="notes.js"></script>
-  <script src="app.js"></script>
+  <main class="wrap">
+    <section class="panel">
+      <div class="row">
+        <button id="btnLoad" class="btn">パターン読み込み</button>
+        <button id="btnMic" class="btn">マイク許可</button>
+        <button id="btnCal" class="btn" disabled>環境キャリブレーション</button>
+        <button id="btnStart" class="btn primary" disabled>開始</button>
+        <button id="btnStop" class="btn" disabled>停止</button>
+      </div>
+
+      <div class="row small">
+        <div class="meterWrap">
+          <div class="meterLabel">MIC</div>
+          <div class="meter"><div id="meterBar" class="meterBar"></div></div>
+          <div id="meterTxt" class="meterTxt">--</div>
+        </div>
+      </div>
+
+      <div class="row small">
+        <label>難易度</label>
+        <select id="diffSelect" class="select">
+          <option value="easy">EASY（広め判定）</option>
+          <option value="normal" selected>NORMAL</option>
+          <option value="hard">HARD（狭め判定）</option>
+        </select>
+
+        <label class="inline">SE</label>
+        <input id="sfxToggle" type="checkbox" checked />
+        <span class="muted">ON</span>
+      </div>
+
+      <div class="row small">
+        <label>感度（右ほど反応しやすい）</label>
+        <input id="sensSlider" type="range" min="0" max="30" value="12" />
+        <span id="sensVal">12</span>
+      </div>
+
+      <div class="row small">
+        <label>判定ウィンドウ（ms）</label>
+        <input id="winSlider" type="range" min="80" max="420" value="180" />
+        <span id="winVal">180</span>
+      </div>
+
+      <div class="row small">
+        <div class="hint">
+          流れ：①パターン読み込み → ②マイク許可 → ③キャリブレーション → ④開始<br/>
+          ※開始するとまず <b>STAGE 1: チューニング</b>。合格すると <b>STAGE 2: ゲーム</b> に進みます。
+        </div>
+      </div>
+    </section>
+
+    <section class="stage">
+      <canvas id="cv"></canvas>
+
+      <div class="hud">
+        <div class="leftHud">
+          <div id="status" class="chip">待機中</div>
+          <div class="life">
+            <div class="lifeLabel">LIFE</div>
+            <div class="lifeBar"><div id="lifeFill" class="lifeFill"></div></div>
+          </div>
+        </div>
+
+        <div class="rightHud">
+          <div class="chip mono" id="score">SCORE: 0</div>
+          <div class="chip mono" id="combo">COMBO: 0</div>
+          <div class="chip mono" id="acc">ACC: --%</div>
+        </div>
+      </div>
+
+      <div class="centerFloat" id="judgeFloat"></div>
+
+      <!-- アメコミ風コメント -->
+      <div class="comic" id="comic" aria-hidden="true">
+        <div class="comicBoom" id="comicBoom">BAM!</div>
+        <div class="comicBubble" id="comicBubble">NICE!</div>
+      </div>
+
+      <!-- Result -->
+      <div class="resultOverlay" id="resultOverlay" aria-hidden="true">
+        <div class="resultCard">
+          <div class="resultTitle">RESULT</div>
+          <div class="resultGrade" id="resultGrade">A</div>
+          <div class="resultStats" id="resultStats"></div>
+          <div class="resultActions">
+            <button class="btn primary" id="btnRestart">もう一回</button>
+            <button class="btn" id="btnCloseResult">閉じる</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <details>
+        <summary>iPhoneでマイクが出ない／反応が弱いとき</summary>
+        <ul>
+          <li>Safariで開く（アプリ内ブラウザは制限が出ることがあります）</li>
+          <li>アドレスバー左「ぁあ/AA」→ Webサイトの設定 → マイク：許可</li>
+          <li>静かな場所で「環境キャリブレーション」を一度実行</li>
+          <li>それでも弱い場合は感度を右へ</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
 </body>
 </html>

@@ -1,12 +1,70 @@
-// notes.js
-// ウクレレ標準チューニング（High-G想定）
-const UKE_STRINGS = [
-  { key: "G", stringNo: 4, label: "4弦 G", hz: 392.00 },
-  { key: "C", stringNo: 3, label: "3弦 C", hz: 261.63 },
-  { key: "A", stringNo: 2, label: "2弦 A", hz: 440.00 },
-  { key: "E", stringNo: 1, label: "1弦 E", hz: 329.63 },
-];
-
-function centsDiff(freq, targetHz) {
-  return 1200 * Math.log2(freq / targetHz);
+{
+  "title": "C Am F G Pulse Loop",
+  "bpm": 90,
+  "notes": [
+    {
+      "t": 1.0,
+      "label": "C"
+    },
+    {
+      "t": 2.0,
+      "label": "Am"
+    },
+    {
+      "t": 3.0,
+      "label": "F"
+    },
+    {
+      "t": 4.0,
+      "label": "G"
+    },
+    {
+      "t": 5.0,
+      "label": "C"
+    },
+    {
+      "t": 6.0,
+      "label": "Am"
+    },
+    {
+      "t": 7.0,
+      "label": "F"
+    },
+    {
+      "t": 8.0,
+      "label": "G"
+    },
+    {
+      "t": 9.0,
+      "label": "C"
+    },
+    {
+      "t": 10.0,
+      "label": "Am"
+    },
+    {
+      "t": 11.0,
+      "label": "F"
+    },
+    {
+      "t": 12.0,
+      "label": "G"
+    },
+    {
+      "t": 13.0,
+      "label": "C"
+    },
+    {
+      "t": 14.0,
+      "label": "Am"
+    },
+    {
+      "t": 15.0,
+      "label": "F"
+    },
+    {
+      "t": 16.0,
+      "label": "G"
+    }
+  ]
 }
