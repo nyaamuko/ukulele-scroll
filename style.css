@@ -30,8 +30,7 @@ body{
 
 .phone{
   width: min(430px, 100vw);
-  height: 100dvh;
-  max-height: 920px;
+  height: 100svh;
   padding-top: var(--safeTop);
   padding-bottom: 0;
   display:flex;
@@ -49,7 +48,7 @@ body{
   display:flex;
   justify-content:space-between;
   align-items:flex-start;
-  padding: 12px 12px 9px;
+  padding: 10px 10px 7px;
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(10px);
   background: rgba(0,0,0,0.25);
@@ -68,7 +67,7 @@ body{
   letter-spacing: 0.5px;
   font-size: 12px;
 }
-.subtitle{ font-weight: 900; font-size: 18px; }
+.subtitle{ font-weight: 900; font-size: 16px; }
 .topbar__right{ padding-top: 2px; }
 .timer{
   display:flex; gap:6px; align-items:baseline;
@@ -85,12 +84,13 @@ body{
 .stage2{
   position:relative;
   flex:1;
-  padding: 10px 10px 4px;
+  padding: 10px 10px calc(10px + var(--safeBottom) + 22px);
   display:flex;
   flex-direction:column;
-  gap: 10px;
+  gap: 8px;
   overflow:hidden;
 }
+
   display:flex;
   flex-direction:column;
   gap: 10px;
@@ -130,7 +130,7 @@ body{
 
 .boardCard{
   position:relative;
-  padding: 11px 11px 10px;
+  padding: 9px 9px 8px;
   border-radius: var(--radius2);
   border: 1px solid rgba(255,255,255,0.10);
   background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
@@ -140,13 +140,13 @@ body{
 /* 横方向の隙間を詰めて整える */
 .boardHeader{
   display:grid;
-  grid-template-columns: 1fr 132px auto;
+  grid-template-columns: 1fr 124px auto;
   gap: 8px;
   align-items:center;
   margin-bottom: 8px;
 }
 .boardHint{
-  font-size: 13px;
+  font-size: 12px;
   color: rgba(255,255,255,0.92); /* 見やすく */
   font-weight: 1000;
   letter-spacing: 0.2px;
@@ -154,7 +154,7 @@ body{
 }
 .boardTitle{
   margin-top: 2px;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 1000;
   color: var(--accent);
   letter-spacing: 1px;
@@ -210,7 +210,7 @@ body{
   align-items:center;
   justify-content:center;
   font-weight: 1000;
-  font-size: 13px;
+  font-size: 12px;
   color: rgba(255,255,255,0.92);
   background: rgba(255,255,255,0.10);
   border: 2px solid rgba(255,255,255,0.18);
@@ -358,11 +358,11 @@ body{
   margin-top: 0;
   display:flex;
   flex-direction:column;
-  gap: 8px;
+  gap: 6px;
 }
 .speech{
   position:relative;
-  padding: 10px 11px 9px;
+  padding: 8px 9px 7px;
   border-radius: 16px;
   background: rgba(255,255,255,0.10);
   border: 2px solid rgba(255,255,255,0.20);
@@ -379,17 +379,17 @@ body{
   border-bottom: 2px solid rgba(255,255,255,0.20);
   transform: rotate(45deg);
 }
-.speech__title{ font-size: 17px; font-weight: 1000; letter-spacing: 1px; }
-.speech__text{ margin-top: 4px; font-size: 13px; color: rgba(255,255,255,0.92); font-weight: 800; }
+.speech__title{ font-size: 15px; font-weight: 1000; letter-spacing: 1px; }
+.speech__text{ margin-top: 4px; font-size: 12px; color: rgba(255,255,255,0.92); font-weight: 800; }
 
 .controls{ display:flex; gap:8px; }
 .btn{
   width:100%;
   border:none;
-  border-radius: 14px;
-  padding: 10px 10px;
+  border-radius: 13px;
+  padding: 8px 9px;
   font-weight: 1000;
-  font-size: 15px;
+  font-size: 14px;
   cursor:pointer;
   box-shadow: 0 10px 18px rgba(0,0,0,0.22);
 }
@@ -464,6 +464,10 @@ border-top: 1px solid var(--line);
   .bgCode{ font-size: 118px; top: 28%; }
   .boardHeader{ grid-template-columns: 1fr 122px auto; }
   .handIllust{ width: 122px; }
-  .btn{ padding: 8px 9px; font-size: 13px; }
+  .btn{ padding: 8px 9px; font-size: 12px; }
   .chip{ padding: 8px 9px; font-size: 11px; }
 }
+
+/* v8: Safari下部バーを考慮してさらに下余白を確保 */
+.boardCard{ flex: 1 1 auto; min-height: 0; }
+.fretboardWrap{ height: 100%; }
