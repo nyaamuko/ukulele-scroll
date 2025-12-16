@@ -48,7 +48,7 @@ body{
   display:flex;
   justify-content:space-between;
   align-items:flex-start;
-  padding: 10px 10px 8px;
+  padding: 12px 12px 9px;
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(10px);
   background: rgba(0,0,0,0.25);
@@ -67,7 +67,7 @@ body{
   letter-spacing: 0.5px;
   font-size: 12px;
 }
-.subtitle{ font-weight: 900; font-size: 16px; }
+.subtitle{ font-weight: 900; font-size: 18px; }
 .topbar__right{ padding-top: 2px; }
 .timer{
   display:flex; gap:6px; align-items:baseline;
@@ -79,39 +79,22 @@ body{
   font-weight: 900;
 }
 .timer__text,.timer__unit{ font-size: 12px; opacity: 0.9; }
-.timer__value{ font-size: 16px; }
+.timer__value{ font-size: 18px; }
 
 .stage2{
   position:relative;
   flex:1;
   padding: 10px 10px calc(12px + var(--safeBottom) + 22px);
-  display:grid;
-  grid-template-rows: 1fr auto;
+  display:flex;
+  flex-direction:column;
   gap: 8px;
   overflow:hidden;
-  align-content: stretch;
+  justify-content:flex-start;
 }
   display:flex;
   flex-direction:column;
   gap: 10px;
   overflow:hidden; /* スクロール禁止 */
-}
-
-.bgCode{
-  position:absolute;
-  left:50%;
-  top: 38%;
-  transform: translate(-50%,-50%);
-  font-size: 150px;
-  font-weight: 1000;
-  letter-spacing: 3px;
-  opacity: 0.22;
-  color: #ffffff;
-  filter: blur(0.6px);
-  text-shadow:
-    0 0 24px rgba(255,255,255,0.22),
-    0 0 80px rgba(124,247,255,0.18);
-  user-select:none;
 }
 
 .bgCode.wobbleStrong{ animation: wobbleStrong 1.7s ease-in-out infinite; }
@@ -141,7 +124,7 @@ body{
 .boardHeader{
   display:grid;
   grid-template-columns: 1fr 132px auto;
-  gap: 6px;
+  gap: 8px;
   align-items:center;
   margin-bottom: 8px;
 }
@@ -269,7 +252,7 @@ body{
   top: -6px;
   display:grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+  gap: 8px;
   pointer-events:none;
   user-select:none;
   opacity: 0.8;
@@ -358,11 +341,11 @@ body{
   margin-top: 0;
   display:flex;
   flex-direction:column;
-  gap: 6px;
+  gap: 8px;
 }
 .speech{
   position:relative;
-  padding: 8px 9px 7px;
+  padding: 10px 11px 9px;
   border-radius: 16px;
   background: rgba(255,255,255,0.10);
   border: 2px solid rgba(255,255,255,0.20);
@@ -379,7 +362,7 @@ body{
   border-bottom: 2px solid rgba(255,255,255,0.20);
   transform: rotate(45deg);
 }
-.speech__title{ font-size: 14px; font-weight: 1000; letter-spacing: 1px; }
+.speech__title{ font-size: 17px; font-weight: 1000; letter-spacing: 1px; }
 .speech__text{ margin-top: 4px; font-size: 13px; color: rgba(255,255,255,0.92); font-weight: 800; }
 
 .controls{ display:flex; gap:8px; }
@@ -389,7 +372,7 @@ body{
   border-radius: 14px;
   padding: 10px 10px;
   font-weight: 1000;
-  font-size: 14px;
+  font-size: 15px;
   cursor:pointer;
   box-shadow: 0 10px 18px rgba(0,0,0,0.22);
 }
@@ -425,13 +408,6 @@ body{
 .comicBurst.miss{ background: radial-gradient(circle at 30% 30%, rgba(255,77,109,1), rgba(255,0,80,1)); }
 .comicBurst.miss .comicBurst__text{ color:#13060a; }
 
-.bottombar{
-  padding: 6px 10px calc(6px + var(--safeBottom));
-border-top: 1px solid var(--line);
-  background: rgba(0,0,0,0.25);
-  backdrop-filter: blur(10px);
-}
-.bottombar__hint{ text-align:center; color: var(--muted); font-size: 11px; font-weight: 800; }
 
 
 
@@ -442,23 +418,6 @@ border-top: 1px solid var(--line);
 }
 .slot{ height: clamp(30px, 4.2vh, 34px); }
 .handIllust{ height: 56px; }
-.bgCode{
-  position:absolute;
-  left:50%;
-  top: 38%;
-  transform: translate(-50%,-50%);
-  font-size: 150px;
-  font-weight: 1000;
-  letter-spacing: 3px;
-  opacity: 0.22;
-  color: #ffffff;
-  filter: blur(0.6px);
-  text-shadow:
-    0 0 24px rgba(255,255,255,0.22),
-    0 0 80px rgba(124,247,255,0.18);
-  user-select:none;
-}
-
 
 /* 下のボタン列を横スクロールにして縦の高さを節約 */
 .smallControls{
@@ -477,11 +436,20 @@ border-top: 1px solid var(--line);
 
 /* さらに小さい端末向け */
 @media (max-height: 730px){
-  .bgCode{
+    .boardHeader{ grid-template-columns: 1fr 122px auto; }
+  .handIllust{ width: 122px; }
+  .btn{ padding: 8px 9px; font-size: 13px; }
+  .chip{ padding: 8px 9px; font-size: 11px; }
+}
+
+/* v12: 余白ゼロで上に貼り付け */
+.boardCard{ margin-top: 0 !important; }
+
+.bgCode{
   position:absolute;
   left:50%;
-  top: 38%;
-  transform: translate(-50%,-50%);
+  top: 210px; /* タイトル直下に必ず収める */
+  transform: translateX(-50%);
   font-size: 150px;
   font-weight: 1000;
   letter-spacing: 3px;
@@ -491,26 +459,9 @@ border-top: 1px solid var(--line);
   text-shadow:
     0 0 24px rgba(255,255,255,0.22),
     0 0 80px rgba(124,247,255,0.18);
+  pointer-events:none;
   user-select:none;
 }
 
-  .boardHeader{ grid-template-columns: 1fr 122px auto; }
-  .handIllust{ width: 122px; }
-  .btn{ padding: 8px 9px; font-size: 13px; }
-  .chip{ padding: 8px 9px; font-size: 11px; }
-}
-
-
-
-
 .boardCard{ flex: 1 1 auto; min-height: 0; }
-.fretboardWrap{ height: 100%; }
-
-/* v11: 上部の空白を作らない（boardCardを最上段に固定） */
-.boardCard{ margin-top: 0 !important; align-self: stretch; z-index: 1; }
-.prompt{ z-index: 1; }
-.bgLayer{
-  position:absolute;
-  inset: 0;
-  pointer-events:none;
-}
+.prompt{ margin-top: 0; }
