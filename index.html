@@ -3,60 +3,120 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Ukulele Scroll Trainer (Web)</title>
+  <title>UkeFlow Pulse Trainer</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header class="top">
-    <div class="title">Ukulele Scroll Trainer</div>
-    <div class="sub">iPhone対応・URL配布OK（GitHub Pages向け）</div>
+    <div class="brand">
+      <div class="logo">UkeFlow</div>
+      <div class="meta">
+        <div class="title">Pulse Trainer</div>
+        <div class="sub">STAGE 1: Tuning → STAGE 2: Pulse Game</div>
+      </div>
+    </div>
   </header>
 
   <main class="wrap">
     <section class="panel">
       <div class="row">
-        <button id="btnLoad" class="btn">譜面読み込み</button>
+        <button id="btnLoad" class="btn">パターン読み込み</button>
         <button id="btnMic" class="btn">マイク許可</button>
-        <button id="btnStart" class="btn primary" disabled>スタート</button>
+        <button id="btnCal" class="btn" disabled>環境キャリブレーション</button>
+        <button id="btnStart" class="btn primary" disabled>開始</button>
         <button id="btnStop" class="btn" disabled>停止</button>
       </div>
 
       <div class="row small">
-        <label>判定感度（大きいほど厳しい）</label>
-        <input id="thSlider" type="range" min="2" max="20" value="8" />
-        <span id="thVal">8</span>
+        <div class="meterWrap">
+          <div class="meterLabel">MIC</div>
+          <div class="meter"><div id="meterBar" class="meterBar"></div></div>
+          <div id="meterTxt" class="meterTxt">--</div>
+        </div>
+      </div>
+
+      <div class="row small">
+        <label>難易度</label>
+        <select id="diffSelect" class="select">
+          <option value="easy">EASY（広め判定）</option>
+          <option value="normal" selected>NORMAL</option>
+          <option value="hard">HARD（狭め判定）</option>
+        </select>
+
+        <label class="inline">SE</label>
+        <input id="sfxToggle" type="checkbox" checked />
+        <span class="muted">ON</span>
+      </div>
+
+      <div class="row small">
+        <label>感度（右ほど反応しやすい）</label>
+        <input id="sensSlider" type="range" min="0" max="30" value="12" />
+        <span id="sensVal">12</span>
       </div>
 
       <div class="row small">
         <label>判定ウィンドウ（ms）</label>
-        <input id="winSlider" type="range" min="80" max="400" value="180" />
+        <input id="winSlider" type="range" min="80" max="420" value="180" />
         <span id="winVal">180</span>
       </div>
 
       <div class="row small">
         <div class="hint">
-          使い方：①譜面読み込み → ②マイク許可 → ③スタート → 判定ラインで「ジャラン」と鳴らす
+          流れ：①パターン読み込み → ②マイク許可 → ③キャリブレーション → ④開始<br/>
+          ※開始するとまず <b>STAGE 1: チューニング</b>。合格すると <b>STAGE 2: ゲーム</b> に進みます。
         </div>
       </div>
     </section>
 
     <section class="stage">
       <canvas id="cv"></canvas>
-      <div class="overlay">
-        <div class="judgeLine"></div>
-        <div id="status" class="status">待機中</div>
-        <div id="score" class="score">OK: 0 / NG: 0</div>
+
+      <div class="hud">
+        <div class="leftHud">
+          <div id="status" class="chip">待機中</div>
+          <div class="life">
+            <div class="lifeLabel">LIFE</div>
+            <div class="lifeBar"><div id="lifeFill" class="lifeFill"></div></div>
+          </div>
+        </div>
+
+        <div class="rightHud">
+          <div class="chip mono" id="score">SCORE: 0</div>
+          <div class="chip mono" id="combo">COMBO: 0</div>
+          <div class="chip mono" id="acc">ACC: --%</div>
+        </div>
+      </div>
+
+      <div class="centerFloat" id="judgeFloat"></div>
+
+      <!-- アメコミ風コメント -->
+      <div class="comic" id="comic" aria-hidden="true">
+        <div class="comicBoom" id="comicBoom">BAM!</div>
+        <div class="comicBubble" id="comicBubble">NICE!</div>
+      </div>
+
+      <!-- Result -->
+      <div class="resultOverlay" id="resultOverlay" aria-hidden="true">
+        <div class="resultCard">
+          <div class="resultTitle">RESULT</div>
+          <div class="resultGrade" id="resultGrade">A</div>
+          <div class="resultStats" id="resultStats"></div>
+          <div class="resultActions">
+            <button class="btn primary" id="btnRestart">もう一回</button>
+            <button class="btn" id="btnCloseResult">閉じる</button>
+          </div>
+        </div>
       </div>
     </section>
 
     <section class="panel">
       <details>
-        <summary>うまく動かないとき（iPhone）</summary>
+        <summary>iPhoneでマイクが出ない／反応が弱いとき</summary>
         <ul>
-          <li>必ず https のURLで開く（GitHub Pages等）</li>
-          <li>「マイク許可」を押した直後に許可ダイアログが出ます</li>
-          <li>iPhoneはマナーモードでもOK（マイクは関係なし）</li>
-          <li>静かすぎる/判定が出ない→感度を下げる（スライダを左へ）</li>
+          <li>Safariで開く（アプリ内ブラウザは制限が出ることがあります）</li>
+          <li>アドレスバー左「ぁあ/AA」→ Webサイトの設定 → マイク：許可</li>
+          <li>静かな場所で「環境キャリブレーション」を一度実行</li>
+          <li>それでも弱い場合は感度を右へ</li>
         </ul>
       </details>
     </section>

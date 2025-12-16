@@ -1,23 +1,43 @@
-// Ukulele Scroll Trainer (Web MVP)
-// - 左→右スクロール譜面（Canvas）
-// - マイク入力（WebAudio）で「鳴らしたタイミング」を判定
-// - コード自体の和音判定はしない（MVPとして現実的）
+// UkeFlow Pulse Trainer - Stage System (Tuning -> Game) + Comic comments
+// Works on GitHub Pages + iPhone Safari (https)
+// Stage 1: tuning (pitch detect with autocorrelation)
+// Stage 2: pulse rhythm game (score/combo/life) triggered after tuning clear
 
 const cv = document.getElementById("cv");
 const ctx = cv.getContext("2d");
 
 const btnLoad = document.getElementById("btnLoad");
 const btnMic  = document.getElementById("btnMic");
+const btnCal  = document.getElementById("btnCal");
 const btnStart= document.getElementById("btnStart");
 const btnStop = document.getElementById("btnStop");
 
-const thSlider = document.getElementById("thSlider");
-const thVal = document.getElementById("thVal");
+const sensSlider = document.getElementById("sensSlider");
+const sensVal = document.getElementById("sensVal");
 const winSlider = document.getElementById("winSlider");
 const winVal = document.getElementById("winVal");
+const diffSelect = document.getElementById("diffSelect");
+const sfxToggle = document.getElementById("sfxToggle");
 
 const statusEl = document.getElementById("status");
 const scoreEl = document.getElementById("score");
+const comboEl = document.getElementById("combo");
+const accEl = document.getElementById("acc");
+
+const meterBar = document.getElementById("meterBar");
+const meterTxt = document.getElementById("meterTxt");
+const lifeFill = document.getElementById("lifeFill");
+const judgeFloat = document.getElementById("judgeFloat");
+
+const comic = document.getElementById("comic");
+const comicBoom = document.getElementById("comicBoom");
+const comicBubble = document.getElementById("comicBubble");
+
+const resultOverlay = document.getElementById("resultOverlay");
+const resultGrade = document.getElementById("resultGrade");
+const resultStats = document.getElementById("resultStats");
+const btnRestart = document.getElementById("btnRestart");
+const btnCloseResult = document.getElementById("btnCloseResult");
 
 let dpr = 1;
 function resizeCanvas(){
@@ -29,49 +49,48 @@ function resizeCanvas(){
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// ---- 譜面データ ----
-let chartTitle = "No Chart";
-let notes = []; // {t,label, judged:false, result:null}
-let chartLoaded = false;
+function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+function setStatus(t){ statusEl.textContent = t; }
 
-// ---- 再生状態 ----
-let running = false;
-let startTs = 0; // performance.now()
-let rafId = null;
-
-// 判定ライン（画面の55%）に合わせる
-function judgeX(){ return cv.width * 0.55; }
-
-// スクロール速度：何秒先を画面に表示するか
-const LOOKAHEAD = 5.0; // 秒（画面右端に見える未来）
-const LOOKBEHIND = 2.0; // 秒（画面左に消える過去）
-
-// ---- マイク（Web Audio） ----
+// ===== Audio =====
 let audioCtx = null;
 let analyser = null;
 let micStream = null;
 let dataTime = null;
+let sampleRate = 48000;
 
-let lastHitTs = 0;
-let ok = 0, ng = 0;
+async function initMic(){
+  try{
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    await audioCtx.resume();
 
-// しきい値：環境で変わるのでスライダで調整
-let threshold = parseInt(thSlider.value, 10); // 2..20
-let windowMs  = parseInt(winSlider.value, 10); // 80..400
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true },
+      video: false
+    });
 
-thSlider.addEventListener("input", () => {
-  threshold = parseInt(thSlider.value, 10);
-  thVal.textContent = String(threshold);
-});
-winSlider.addEventListener("input", () => {
-  windowMs = parseInt(winSlider.value, 10);
-  winVal.textContent = String(windowMs);
-});
+    sampleRate = audioCtx.sampleRate;
 
-function setStatus(text){ statusEl.textContent = text; }
-function setScore(){ scoreEl.textContent = `OK: ${ok} / NG: ${ng}`; }
+    const src = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    dataTime = new Float32Array(analyser.fftSize);
+    src.connect(analyser);
 
-// RMS（音量）を計算して、ストローク検出（簡易）
+    setStatus("マイクOK（次はキャリブレーション）");
+    btnCal.disabled = false;
+    btnStart.disabled = !chartLoaded;
+    beep(520, 60, "sine", 0.04);
+    return true;
+  }catch(e){
+    console.error(e);
+    setStatus("マイクNG（https/Safari/許可を確認）");
+    return false;
+  }
+}
+
 function getRms(){
   if(!analyser) return 0;
   analyser.getFloatTimeDomainData(dataTime);
@@ -83,305 +102,730 @@ function getRms(){
   return Math.sqrt(sum / dataTime.length);
 }
 
-// 適当に正規化（経験的な目安）
-function isStrum(rms){
-  // しきい値をスライダで調整：小さいほど反応しやすい
-  // iPhoneのマイクは環境差大きいので、ここはユーザー調整が前提
-  const scaled = rms * 1000; // だいたい 0〜数十
-  return scaled > threshold;
+// ===== SFX (simple oscillator) =====
+function beep(freq, durMs, type="sine", gain=0.05){
+  if(!audioCtx || !sfxToggle.checked) return;
+  const t0 = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  g.gain.value = 0.0001;
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start(t0);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(gain, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + durMs/1000);
+  osc.stop(t0 + durMs/1000 + 0.03);
 }
 
-async function initMic(){
-  try{
-    if(!audioCtx){
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    // iOSはユーザー操作の中でresumeが必要
-    await audioCtx.resume();
+// ===== Calibration & strum trigger =====
+let noiseFloor = 0.010;
+let triggerRms = 0.030;
+let calibrated = false;
 
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      },
-      video: false
-    });
+let sensitivity = parseInt(sensSlider.value, 10);
+let windowMs = parseInt(winSlider.value, 10);
+sensVal.textContent = String(sensitivity);
+winVal.textContent = String(windowMs);
 
-    const src = audioCtx.createMediaStreamSource(micStream);
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
-    dataTime = new Float32Array(analyser.fftSize);
+function recomputeTrigger(){
+  const margin = 0.040 - (sensitivity/30) * 0.032; // 0.040..0.008
+  triggerRms = noiseFloor + margin;
+}
+function isStrum(rms){ return rms > triggerRms; }
 
-    src.connect(analyser);
+sensSlider.addEventListener("input", () => {
+  sensitivity = parseInt(sensSlider.value, 10);
+  sensVal.textContent = String(sensitivity);
+  recomputeTrigger();
+});
+winSlider.addEventListener("input", () => {
+  windowMs = parseInt(winSlider.value, 10);
+  winVal.textContent = String(windowMs);
+});
+diffSelect.addEventListener("change", () => applyDifficulty(diffSelect.value));
 
-    setStatus("マイクOK（スタート可能）");
-    btnStart.disabled = !chartLoaded;
-    return true;
-  }catch(e){
-    console.error(e);
-    setStatus("マイクNG：許可されていない/httpsでない可能性");
-    return false;
+function applyDifficulty(mode){
+  if(mode === "easy") windowMs = 240;
+  else if(mode === "hard") windowMs = 140;
+  else windowMs = 180;
+  winSlider.value = String(windowMs);
+  winVal.textContent = String(windowMs);
+}
+
+async function calibrate(){
+  if(!analyser){ setStatus("先にマイク許可"); return; }
+  setStatus("キャリブレーション中（静かに…）");
+  const samples = [];
+  const t0 = performance.now();
+  while(performance.now() - t0 < 900){
+    samples.push(getRms());
+    await new Promise(r => setTimeout(r, 20));
   }
+  samples.sort((a,b)=>a-b);
+  const p85 = samples[Math.floor(samples.length * 0.85)] || 0.010;
+  noiseFloor = clamp(p85, 0.003, 0.060);
+  calibrated = true;
+  recomputeTrigger();
+  setStatus(`完了（noise=${noiseFloor.toFixed(3)} / trig=${triggerRms.toFixed(3)}）`);
+  beep(660, 80, "triangle", 0.05);
 }
 
-// ---- 譜面読み込み ----
+// ===== Chart =====
+let chartTitle = "No Pattern";
+let notes = []; // {t,label, judged:false, rank:null}
+let chartLoaded = false;
+
 async function loadChart(){
   try{
-    const res = await fetch("./notes.json", { cache: "no-store" });
+    const res = await fetch("./notes.json", { cache:"no-store" });
     if(!res.ok) throw new Error("notes.json fetch failed");
     const json = await res.json();
-
     chartTitle = json.title || "Untitled";
-    notes = (json.notes || []).map(n => ({
-      t: Number(n.t),
-      label: String(n.label || ""),
-      judged: false,
-      result: null
-    }));
+    notes = (json.notes || []).map(n => ({ t:Number(n.t), label:String(n.label||""), judged:false, rank:null }));
     chartLoaded = notes.length > 0;
-    setStatus(`譜面OK：${chartTitle}（${notes.length}ノート）`);
+    setStatus(`パターンOK：${chartTitle}（${notes.length}）`);
     btnStart.disabled = !chartLoaded || !analyser;
+    beep(520, 70, "sine", 0.04);
   }catch(e){
     console.error(e);
-    setStatus("譜面NG：notes.jsonが読めません");
+    setStatus("パターンNG：notes.jsonが読めません");
   }
 }
 
-// ---- スタート/停止 ----
-function resetRun(){
-  running = false;
-  ok = 0; ng = 0;
-  setScore();
-  notes.forEach(n => { n.judged=false; n.result=null; });
+// ===== Comic =====
+let comicUntil = 0;
+function showComic(boom, bubble){
+  comicBoom.textContent = boom;
+  comicBubble.textContent = bubble;
+  comic.classList.remove("show");
+  comic.setAttribute("aria-hidden","false");
+  void comic.offsetWidth;
+  comic.classList.add("show");
+  comicUntil = performance.now() + 750;
+}
+function updateComic(){
+  if(comicUntil && performance.now() > comicUntil){
+    comic.classList.remove("show");
+    comic.setAttribute("aria-hidden","true");
+    comicUntil = 0;
+  }
 }
 
-function start(){
-  if(!chartLoaded){ setStatus("先に譜面読み込み"); return; }
-  if(!analyser){ setStatus("先にマイク許可"); return; }
+// ===== Stage =====
+const STAGE = { TUNING: 1, GAME: 2 };
+let stage = STAGE.TUNING;
 
-  resetRun();
-  running = true;
-  startTs = performance.now();
-  lastHitTs = 0;
-  btnStart.disabled = true;
-  btnStop.disabled = false;
-  setStatus("再生中：判定ラインで鳴らす！");
-  loop();
+// ===== Tuning (pitch detect) =====
+const TUNING_TARGETS = [
+  { name:"G", freq:392.00 },
+  { name:"C", freq:261.63 },
+  { name:"E", freq:329.63 },
+  { name:"A", freq:440.00 }
+];
+const TUNE_TOL_CENTS = 12;   // ±12 cents
+const TUNE_NEED_MS  = 1200; // stable duration
+let tuneHoldMs = 0;
+let lastTuneTs = 0;
+let tuningCleared = false;
+
+function resetTuning(){
+  tuneHoldMs = 0;
+  lastTuneTs = 0;
+  tuningCleared = false;
 }
 
-function stop(){
-  running = false;
-  btnStart.disabled = false;
-  btnStop.disabled = true;
-  setStatus("停止");
-  if(rafId) cancelAnimationFrame(rafId);
-  rafId = null;
-  draw(performance.now()); // 最終描画
+function freqToCents(freq, targetHz){
+  return 1200 * Math.log2(freq / targetHz);
 }
 
-// ---- 判定ロジック ----
-function nowSec(ts){
-  return (ts - startTs) / 1000.0;
+function nearestTarget(freq){
+  let best = null;
+  for(const t of TUNING_TARGETS){
+    const cents = freqToCents(freq, t.freq);
+    const abs = Math.abs(cents);
+    if(!best || abs < best.abs){
+      best = { ...t, cents, abs };
+    }
+  }
+  return best;
+}
+
+// Autocorrelation pitch detection (simple)
+function detectPitchHz(buf, sr){
+  // remove DC
+  let mean = 0;
+  for(let i=0;i<buf.length;i++) mean += buf[i];
+  mean /= buf.length;
+
+  let rms = 0;
+  const x = new Float32Array(buf.length);
+  for(let i=0;i<buf.length;i++){
+    const v = buf[i] - mean;
+    x[i] = v;
+    rms += v*v;
+  }
+  rms = Math.sqrt(rms / buf.length);
+  if(rms < 0.008) return null; // too quiet
+
+  const size = x.length;
+  const maxLag = Math.min(Math.floor(sr / 80), size - 1);  // ~80Hz
+  const minLag = Math.max(2, Math.floor(sr / 1000));       // ~1000Hz
+
+  let bestLag = -1;
+  let bestVal = 0;
+
+  for(let lag=minLag; lag<=maxLag; lag++){
+    let sum = 0;
+    for(let i=0;i<size-lag;i++){
+      sum += x[i] * x[i+lag];
+    }
+    if(sum > bestVal){
+      bestVal = sum;
+      bestLag = lag;
+    }
+  }
+  if(bestLag <= 0) return null;
+  const freq = sr / bestLag;
+  if(freq < 80 || freq > 1000) return null;
+  return freq;
+}
+
+// ===== Game stats =====
+let running = false;
+let startTs = 0;
+let rafId = null;
+
+let score = 0, combo = 0, maxCombo = 0;
+let totalJudged = 0, totalHit = 0, sumAbsDt = 0;
+let perfect = 0, great = 0, okc = 0, miss = 0;
+let life = 1.0;
+
+function setLife(v){
+  life = clamp(v, 0, 1);
+  lifeFill.style.width = `${Math.round(life*100)}%`;
+  lifeFill.style.opacity = (life < 0.35) ? "0.7" : "1.0";
+}
+
+function setHUD(){
+  scoreEl.textContent = `SCORE: ${score}`;
+  comboEl.textContent = `COMBO: ${combo}`;
+  if(totalJudged > 0){
+    const acc = clamp((totalHit / totalJudged) * 100, 0, 100);
+    accEl.textContent = `ACC: ${acc.toFixed(1)}%`;
+  }else{
+    accEl.textContent = `ACC: --%`;
+  }
+}
+
+function resetGame(){
+  score = 0; combo = 0; maxCombo = 0;
+  totalJudged = 0; totalHit = 0; sumAbsDt = 0;
+  perfect = 0; great = 0; okc = 0; miss = 0;
+  setLife(1.0);
+  setHUD();
+  for(const n of notes){ n.judged=false; n.rank=null; }
+}
+
+function nowSec(ts){ return (ts - startTs) / 1000.0; }
+
+function showJudge(text){
+  judgeFloat.textContent = text;
+  judgeFloat.classList.remove("show");
+  void judgeFloat.offsetWidth;
+  judgeFloat.classList.add("show");
+}
+
+// Particles
+let particles = [];
+function spawnBurst(x,y, power=1){
+  const n = Math.floor(14 * power);
+  for(let i=0;i<n;i++){
+    const a = Math.random() * Math.PI * 2;
+    const sp = (0.6 + Math.random()*1.6) * power;
+    particles.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, life: 1.0 });
+  }
+}
+function stepParticles(){
+  for(const p of particles){
+    p.x += p.vx * dpr;
+    p.y += p.vy * dpr;
+    p.vx *= 0.98;
+    p.vy *= 0.98;
+    p.life -= 0.04;
+  }
+  particles = particles.filter(p => p.life > 0);
+}
+
+function drawHex(x,y,r, fill, stroke){
+  ctx.save();
+  ctx.beginPath();
+  for(let k=0;k<6;k++){
+    const a = (Math.PI/3)*k + Math.PI/6;
+    const px = x + Math.cos(a)*r;
+    const py = y + Math.sin(a)*r;
+    if(k===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.strokeStyle = stroke; ctx.lineWidth = 2*dpr; ctx.stroke();
+  ctx.restore();
+}
+
+function rankForDt(absDt, win){
+  const r = absDt / win;
+  if(r <= 0.25) return "perfect";
+  if(r <= 0.50) return "great";
+  if(r <= 1.00) return "ok";
+  return "miss";
+}
+function addScore(rank){
+  const mult = 1 + Math.floor(combo / 10) * 0.2;
+  let base = 0;
+  if(rank === "perfect") base = 120;
+  else if(rank === "great") base = 90;
+  else if(rank === "ok") base = 60;
+  score += Math.round(base * mult);
+}
+
+function applyHit(rank){
+  totalJudged++;
+  if(rank === "miss"){
+    miss++; combo = 0;
+    setLife(life - 0.14);
+    showJudge("MISS");
+    beep(220, 90, "sawtooth", 0.03);
+  }else{
+    totalHit++;
+    if(rank === "perfect"){ perfect++; combo++; setLife(life + 0.05); showJudge("PERFECT"); beep(1040, 60, "sine", 0.05); }
+    else if(rank === "great"){ great++; combo++; setLife(life + 0.035); showJudge("GREAT"); beep(880, 60, "sine", 0.045); }
+    else { okc++; combo++; setLife(life + 0.02); showJudge("OK"); beep(660, 60, "sine", 0.04); }
+    maxCombo = Math.max(maxCombo, combo);
+    addScore(rank);
+    if(combo === 10) showComic("WHAM!", "10 COMBO! その調子！");
+    if(combo === 20) showComic("KAPOW!", "20 COMBO! 指が勝手に動いてる！");
+  }
+  setHUD();
 }
 
 function judgeAtTime(curT, didStrum){
   const win = windowMs / 1000.0;
 
-  // まだ判定していないノートで、近いものを探す（最短距離）
   let bestIdx = -1;
-  let bestDt = 1e9;
+  let bestDtSigned = 1e9;
 
   for(let i=0;i<notes.length;i++){
     const n = notes[i];
     if(n.judged) continue;
-    const dt = Math.abs(n.t - curT);
-    if(dt < bestDt){
-      bestDt = dt;
+    const dtSigned = n.t - curT;
+    if(Math.abs(dtSigned) < Math.abs(bestDtSigned)){
+      bestDtSigned = dtSigned;
       bestIdx = i;
     }
   }
 
-  // ストロークがあったら、窓内ならOK、それ以外は無視（連打防止あり）
-  if(didStrum && bestIdx >= 0 && bestDt <= win){
-    notes[bestIdx].judged = true;
-    notes[bestIdx].result = "ok";
-    ok++;
-    setScore();
-    flash("ok");
+  if(didStrum && bestIdx >= 0 && Math.abs(bestDtSigned) <= win){
+    const n = notes[bestIdx];
+    n.judged = true;
+    const absDt = Math.abs(bestDtSigned);
+    const rank = rankForDt(absDt, win);
+    n.rank = rank;
+    sumAbsDt += absDt;
+    applyHit(rank);
   }
 
-  // 時間が過ぎたノートはNG確定（窓を超えたら）
   for(const n of notes){
     if(n.judged) continue;
     if(curT - n.t > win){
       n.judged = true;
-      n.result = "ng";
-      ng++;
-      setScore();
-      flash("ng");
+      n.rank = "miss";
+      applyHit("miss");
     }
   }
 }
 
-// 画面フラッシュ（軽い演出）
-let flashState = null; // {type, until}
-function flash(type){
-  flashState = { type, until: performance.now() + 160 };
+// ===== Result =====
+function gradeFor(acc, mcombo){
+  if(acc >= 96 && mcombo >= 20) return "S";
+  if(acc >= 92) return "A";
+  if(acc >= 85) return "B";
+  if(acc >= 75) return "C";
+  return "D";
+}
+function openResult(){
+  const acc = (totalJudged > 0) ? (totalHit / totalJudged) * 100 : 0;
+  const g = gradeFor(acc, maxCombo);
+  resultGrade.textContent = g;
+
+  const avgMs = (totalHit > 0) ? (sumAbsDt / totalHit) * 1000 : 0;
+  resultStats.textContent = [
+    `SCORE: ${score}`,
+    `ACC:   ${acc.toFixed(1)}%`,
+    `MAX COMBO: ${maxCombo}`,
+    ``,
+    `PERFECT: ${perfect}`,
+    `GREAT:   ${great}`,
+    `OK:      ${okc}`,
+    `MISS:    ${miss}`,
+    ``,
+    `AVG |dt|: ${avgMs.toFixed(0)} ms`
+  ].join("\n");
+
+  resultOverlay.classList.add("show");
+  resultOverlay.setAttribute("aria-hidden","false");
 }
 
-// ---- 描画 ----
-function draw(ts){
-  const w = cv.width, h = cv.height;
-  ctx.clearRect(0,0,w,h);
-
-  // 背景グリッド
-  ctx.save();
-  ctx.globalAlpha = 0.25;
-  ctx.strokeStyle = "rgba(255,255,255,0.10)";
-  ctx.lineWidth = 1 * dpr;
-  const step = 36 * dpr;
-  for(let x=0;x<w;x+=step){
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
-  }
-  for(let y=0;y<h;y+=step){
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
-  }
-  ctx.restore();
-
-  const curT = running ? nowSec(ts) : 0;
-
-  // 上部タイトル
-  ctx.save();
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.font = `${14*dpr}px system-ui, -apple-system, sans-serif`;
-  ctx.fillText(chartTitle, 12*dpr, 24*dpr);
-  ctx.restore();
-
-  // タイム→X変換：判定ラインが「現在時刻」
-  const xJudge = judgeX();
-  const tLeft  = curT - LOOKBEHIND;
-  const tRight = curT + LOOKAHEAD;
-  const pxPerSec = (w * 0.85) / (LOOKAHEAD + LOOKBEHIND); // 表示幅
-  function xForTime(t){
-    // curT の位置が xJudge
-    return xJudge + (t - curT) * pxPerSec;
-  }
-
-  // ノート描画
-  const laneY = h * 0.58;
-  const noteH = 46 * dpr;
-  const radius = 14 * dpr;
-
-  for(const n of notes){
-    if(n.t < tLeft || n.t > tRight) continue;
-    const x = xForTime(n.t);
-
-    // 状態により色味
-    let fill = "rgba(255,255,255,0.10)";
-    let stroke = "rgba(77,163,255,0.65)";
-    let labelCol = "rgba(234,240,255,0.92)";
-
-    if(n.result === "ok"){
-      stroke = "rgba(85,255,154,0.85)";
-      fill = "rgba(85,255,154,0.18)";
-    }else if(n.result === "ng"){
-      stroke = "rgba(255,90,116,0.85)";
-      fill = "rgba(255,90,116,0.14)";
-      labelCol = "rgba(255,210,216,0.95)";
-    }
-
-    // ノート本体（丸角）
-    roundRect(ctx, x - 44*dpr, laneY - noteH/2, 88*dpr, noteH, radius, fill, stroke);
-
-    // ラベル
-    ctx.save();
-    ctx.fillStyle = labelCol;
-    ctx.font = `${20*dpr}px system-ui, -apple-system, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(n.label, x, laneY);
-    ctx.restore();
-  }
-
-  // 下部の時間表示
-  ctx.save();
-  ctx.fillStyle = "rgba(155,176,208,0.9)";
-  ctx.font = `${12*dpr}px system-ui, -apple-system, sans-serif`;
-  const tText = running ? `t = ${curT.toFixed(2)}s` : "t = 0.00s";
-  ctx.fillText(tText, 12*dpr, h - 16*dpr);
-  ctx.restore();
-
-  // フラッシュ演出
-  if(flashState && performance.now() < flashState.until){
-    ctx.save();
-    ctx.globalAlpha = 0.10;
-    ctx.fillStyle = (flashState.type === "ok") ? "#55ff9a" : "#ff5a74";
-    ctx.fillRect(0,0,w,h);
-    ctx.restore();
-  }else{
-    flashState = null;
-  }
-}
-
-function roundRect(ctx, x,y,w,h,r, fill, stroke){
-  ctx.save();
+// ===== Drawing =====
+function roundRect(x,y,w,h,r, fill, stroke){
+  const rr = Math.min(r, w/2, h/2);
   ctx.beginPath();
-  ctx.moveTo(x+r, y);
-  ctx.arcTo(x+w, y, x+w, y+h, r);
-  ctx.arcTo(x+w, y+h, x, y+h, r);
-  ctx.arcTo(x, y+h, x, y, r);
-  ctx.arcTo(x, y, x+w, y, r);
+  ctx.moveTo(x+rr,y);
+  ctx.arcTo(x+w,y,x+w,y+h,rr);
+  ctx.arcTo(x+w,y+h,x,y+h,rr);
+  ctx.arcTo(x,y+h,x,y,rr);
+  ctx.arcTo(x,y,x+w,y,rr);
   ctx.closePath();
-  ctx.fillStyle = fill;
-  ctx.fill();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 2 * dpr;
+  if(fill) ctx.fill();
+  if(stroke) ctx.stroke();
+}
+
+function drawBackground(){
+  const w = cv.width, h = cv.height;
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = "rgba(255,255,255,0.10)";
+  for(let i=0;i<70;i++){
+    const x = (i*97 % 997) / 997 * w;
+    const y = (i*233 % 991) / 991 * h;
+    const r = ((i*19)%7 + 1) * dpr * 0.35;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawTuningUI(freq, target){
+  const w = cv.width, h = cv.height;
+  const cx = w*0.52;
+  const cy = h*0.56;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(234,240,255,0.90)";
+  ctx.font = `${16*dpr}px system-ui, -apple-system, sans-serif`;
+  ctx.fillText("STAGE 1 : TUNING", 14*dpr, 28*dpr);
+  ctx.restore();
+
+  // ring
+  ctx.save();
+  ctx.strokeStyle = "rgba(124,92,255,0.24)";
+  ctx.lineWidth = 2*dpr;
+  ctx.beginPath(); ctx.arc(cx,cy, 120*dpr, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  // target note letter
+  ctx.save();
+  ctx.fillStyle = "rgba(234,240,255,0.92)";
+  ctx.font = `${44*dpr}px system-ui, -apple-system, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(target ? target.name : "—", cx, cy - 18*dpr);
+  ctx.restore();
+
+  // cents bar
+  const cents = target ? target.cents : 0;
+  const c = clamp(cents, -50, 50);
+  const barW = 360*dpr, barH = 16*dpr;
+  const bx = cx - barW/2, by = cy + 24*dpr;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
+  ctx.lineWidth = 1*dpr;
+  roundRect(bx, by, barW, barH, 999*dpr, true, true);
+
+  // center line
+  ctx.strokeStyle = "rgba(34,211,238,0.35)";
+  ctx.beginPath();
+  ctx.moveTo(cx, by-10*dpr);
+  ctx.lineTo(cx, by+barH+10*dpr);
+  ctx.stroke();
+
+  // pointer
+  const px = bx + ((c + 50) / 100) * barW;
+  ctx.strokeStyle = "rgba(234,240,255,0.85)";
+  ctx.lineWidth = 3*dpr;
+  ctx.beginPath();
+  ctx.moveTo(px, by-8*dpr);
+  ctx.lineTo(px, by+barH+8*dpr);
   ctx.stroke();
   ctx.restore();
+
+  // text
+  ctx.save();
+  ctx.fillStyle = "rgba(152,170,204,0.95)";
+  ctx.font = `${13*dpr}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace`;
+  ctx.textAlign = "center";
+  const txt = target
+    ? `${freq.toFixed(1)} Hz  (${cents>=0?"+":""}${cents.toFixed(1)} cents)`
+    : `音を鳴らしてください`;
+  ctx.fillText(txt, cx, by + 46*dpr);
+  ctx.restore();
+
+  // progress
+  const p = clamp(tuneHoldMs / TUNE_NEED_MS, 0, 1);
+  const pw = 360*dpr, ph = 10*dpr;
+  const px0 = cx - pw/2, py0 = by + 66*dpr;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
+  roundRect(px0, py0, pw, ph, 999*dpr, true, true);
+  ctx.fillStyle = "rgba(34,211,238,0.55)";
+  roundRect(px0, py0, pw*p, ph, 999*dpr, true, false);
+
+  ctx.fillStyle = "rgba(152,170,204,0.95)";
+  ctx.font = `${12*dpr}px system-ui, -apple-system, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(`安定チェック ${Math.round(p*100)}%`, cx, py0 + 26*dpr);
+  ctx.restore();
+
+  // hint
+  ctx.save();
+  ctx.fillStyle = "rgba(152,170,204,0.92)";
+  ctx.font = `${12*dpr}px system-ui, -apple-system, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("G / C / E / A のどれかに近い音で判定します（合格するとゲーム開始）", cx, h - 22*dpr);
+  ctx.restore();
 }
 
-// ---- メインループ ----
+function drawGameUI(ts){
+  const w = cv.width, h = cv.height;
+  const curT = running ? nowSec(ts) : 0;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(234,240,255,0.90)";
+  ctx.font = `${16*dpr}px system-ui, -apple-system, sans-serif`;
+  ctx.fillText("STAGE 2 : PULSE GAME", 14*dpr, 28*dpr);
+  ctx.fillStyle = "rgba(152,170,204,0.90)";
+  ctx.font = `${13*dpr}px system-ui, -apple-system, sans-serif`;
+  ctx.fillText(chartTitle, 14*dpr, 48*dpr);
+  ctx.restore();
+
+  const cx = w*0.52, cy = h*0.56;
+  const pulse = running ? (Math.sin(curT * Math.PI * 2) * 0.5 + 0.5) : 0.2;
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(124,92,255,0.22)";
+  ctx.lineWidth = 2*dpr;
+  ctx.beginPath(); ctx.arc(cx,cy, 92*dpr, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  const coreR = (26 + 12*pulse) * dpr;
+  ctx.save();
+  ctx.fillStyle = "rgba(124,92,255,0.18)";
+  ctx.beginPath(); ctx.arc(cx,cy, coreR, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = "rgba(34,211,238,0.33)";
+  ctx.lineWidth = 2*dpr;
+  ctx.beginPath(); ctx.arc(cx,cy, coreR*0.78, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  // particles
+  stepParticles();
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  for(const p of particles){
+    ctx.globalAlpha = 0.55 * p.life;
+    ctx.beginPath(); ctx.arc(p.x,p.y, 2.2*dpr, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+
+  // notes flow
+  const LOOKAHEAD = 5.0, LOOKBEHIND = 1.0;
+  const outerR = Math.min(w,h) * 0.42;
+  const innerR = 40 * dpr;
+
+  function radiusForTime(t){
+    const dt = t - curT;
+    const pp = clamp(1 - (dt/LOOKAHEAD), 0, 1);
+    return outerR - pp * (outerR - innerR);
+  }
+
+  for(let i=0;i<notes.length;i++){
+    const n = notes[i];
+    const dt = n.t - curT;
+    if(dt < -LOOKBEHIND || dt > LOOKAHEAD) continue;
+
+    const ang = (i * 0.85) + (curT * 0.25);
+    const r = radiusForTime(n.t);
+    const x = cx + Math.cos(ang) * r;
+    const y = cy + Math.sin(ang) * r;
+
+    let fill = "rgba(255,255,255,0.06)";
+    let stroke = "rgba(124,92,255,0.62)";
+    let text = "rgba(234,240,255,0.92)";
+    if(n.rank === "perfect"){ stroke="rgba(44,255,154,0.82)"; fill="rgba(44,255,154,0.14)"; }
+    else if(n.rank === "great"){ stroke="rgba(34,211,238,0.75)"; fill="rgba(34,211,238,0.10)"; }
+    else if(n.rank === "ok"){ stroke="rgba(124,92,255,0.78)"; fill="rgba(124,92,255,0.12)"; }
+    else if(n.rank === "miss"){ stroke="rgba(255,77,109,0.82)"; fill="rgba(255,77,109,0.10)"; text="rgba(255,220,228,0.95)"; }
+
+    drawHex(x,y, 34*dpr, fill, stroke);
+
+    ctx.save();
+    ctx.fillStyle = text;
+    ctx.font = `${14*dpr}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(n.label, x, y);
+    ctx.restore();
+  }
+}
+
+// ===== Main loop =====
+let lastHitTs = 0;
+
+function startRun(){
+  resultOverlay.classList.remove("show");
+  resultOverlay.setAttribute("aria-hidden","true");
+  stage = STAGE.TUNING;
+  resetTuning();
+  resetGame();
+  running = true;
+  startTs = performance.now(); // used in GAME stage; ignored in tuning
+  lastHitTs = 0;
+  setStatus("開始：STAGE 1 チューニング（弦を1本鳴らして合わせる）");
+  btnStart.disabled = true;
+  btnStop.disabled = false;
+  showComic("READY!", "まずはチューニング！G/C/E/AのどれでもOK");
+  loop();
+}
+
+function stopRun(){
+  running = false;
+  btnStart.disabled = false;
+  btnStop.disabled = true;
+  setStatus("停止");
+}
+
 function loop(ts){
   if(!running) return;
 
-  // 描画
-  draw(ts);
-
-  // ストローク検出（簡易：RMSで閾値超え）
+  // meter
   const rms = getRms();
-  const hit = isStrum(rms);
+  const level = clamp(rms / 0.12, 0, 1);
+  meterBar.style.width = `${Math.round(level*100)}%`;
+  meterTxt.textContent = rms.toFixed(3);
 
-  // 連打防止（最低120ms間隔）
-  const now = performance.now();
-  const canHit = (now - lastHitTs) > 120;
-  const didStrum = hit && canHit;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  drawBackground();
 
-  if(didStrum) lastHitTs = now;
+  if(stage === STAGE.TUNING){
+    // pitch detect
+    const freq = detectPitchHz(dataTime, sampleRate);
+    const target = (freq ? nearestTarget(freq) : null);
 
-  // 判定
-  const curT = nowSec(ts);
-  judgeAtTime(curT, didStrum);
+    // hold in tune
+    const now = performance.now();
+    if(!lastTuneTs) lastTuneTs = now;
+    const dt = now - lastTuneTs;
+    lastTuneTs = now;
 
-  // 終了条件：最後のノートから一定時間
-  const lastT = notes.length ? notes[notes.length-1].t : 0;
-  if(curT > lastT + 2.5){
-    setStatus("終了（おつかれさま！）");
-    stop();
-    return;
+    if(target && target.abs <= TUNE_TOL_CENTS){
+      tuneHoldMs += dt;
+      // little positive feedback
+      if(tuneHoldMs > 200 && Math.abs(tuneHoldMs % 400) < 30) beep(780, 35, "sine", 0.025);
+    }else{
+      tuneHoldMs = Math.max(0, tuneHoldMs - dt*1.8);
+    }
+
+    drawTuningUI(freq || 0, target);
+
+    if(!tuningCleared && tuneHoldMs >= TUNE_NEED_MS){
+      tuningCleared = true;
+      showComic("BAM!", "チューニングOK！次はゲームだ！");
+      beep(980, 120, "triangle", 0.06);
+
+      // switch to game after a short delay
+      setTimeout(() => {
+        if(!running) return;
+        stage = STAGE.GAME;
+        startTs = performance.now();
+        setStatus("STAGE 2：中心で鳴らしてコンボを繋ぐ！");
+      }, 500);
+    }
+
+  }else{
+    // GAME stage
+    const curT = nowSec(ts);
+
+    const canHit = (performance.now() - lastHitTs) > 120;
+    const didStrum = isStrum(rms) && canHit;
+    if(didStrum){
+      lastHitTs = performance.now();
+      spawnBurst(cv.width*0.52, cv.height*0.56, 1.0);
+    }
+
+    judgeAtTime(curT, didStrum);
+    drawGameUI(ts);
+
+    // game over by life
+    if(life <= 0.001){
+      setStatus("GAME OVER");
+      running = false;
+      btnStart.disabled = false;
+      btnStop.disabled = true;
+      showComic("OUCH!", "次はキャリブレーションして再挑戦だ！");
+      openResult();
+      return;
+    }
+
+    // finish
+    const lastT = notes.length ? notes[notes.length-1].t : 0;
+    if(curT > lastT + 2.5){
+      running = false;
+      btnStart.disabled = false;
+      btnStop.disabled = true;
+      setStatus("終了（RESULT）");
+      showComic("POW!", "ナイス！リザルトを見る？");
+      openResult();
+      return;
+    }
   }
 
+  updateComic();
   rafId = requestAnimationFrame(loop);
 }
 
-// ---- ボタン ----
+// ===== Buttons =====
 btnLoad.addEventListener("click", loadChart);
-btnMic.addEventListener("click", initMic);
-btnStart.addEventListener("click", start);
-btnStop.addEventListener("click", stop);
+btnMic.addEventListener("click", async () => {
+  const ok = await initMic();
+  if(ok){
+    btnCal.disabled = false;
+    btnStart.disabled = !chartLoaded;
+  }
+});
+btnCal.addEventListener("click", calibrate);
+btnStart.addEventListener("click", () => {
+  if(audioCtx) audioCtx.resume().catch(()=>{});
+  if(!chartLoaded){ setStatus("先にパターン読み込み"); return; }
+  if(!analyser){ setStatus("先にマイク許可"); return; }
+  if(!calibrated){ setStatus("キャリブレーション推奨（動きますが精度UP）"); }
+  startRun();
+});
+btnStop.addEventListener("click", stopRun);
 
-// 初期表示
-thVal.textContent = String(threshold);
-winVal.textContent = String(windowMs);
-setScore();
-setStatus("まず「譜面読み込み」→「マイク許可」→「スタート」");
+btnRestart.addEventListener("click", () => {
+  resultOverlay.classList.remove("show");
+  resultOverlay.setAttribute("aria-hidden","true");
+  if(audioCtx) audioCtx.resume().catch(()=>{});
+  startRun();
+});
+btnCloseResult.addEventListener("click", () => {
+  resultOverlay.classList.remove("show");
+  resultOverlay.setAttribute("aria-hidden","true");
+});
+
+// ===== Init =====
+applyDifficulty(diffSelect.value);
+setLife(1.0);
+setHUD();
+setStatus("待機中：パターン読み込み → マイク許可 → キャリブレーション → 開始");
