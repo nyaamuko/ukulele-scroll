@@ -1,336 +1,140 @@
 {
-  "STAGE2_CODES": [
+  "stage2_chords": [
     {
       "code": "C",
+      "maxFret": 5,
       "strings": [
         {
           "name": "4弦",
-          "note": "G",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "G"
         },
         {
           "name": "3弦",
-          "note": "C",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "on",
-              "label": "3"
-            }
-          ]
+          "note": "C"
         },
         {
           "name": "2弦",
-          "note": "E",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "E"
         },
         {
           "name": "1弦",
-          "note": "A",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "A"
         }
+      ],
+      "frets": [
+        0,
+        0,
+        0,
+        3
+      ],
+      "fingers": [
+        "",
+        "",
+        "",
+        "3"
       ]
     },
     {
       "code": "Am",
+      "maxFret": 5,
       "strings": [
         {
           "name": "4弦",
-          "note": "G",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "G"
         },
         {
           "name": "3弦",
-          "note": "C",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "C"
         },
         {
           "name": "2弦",
-          "note": "E",
-          "dots": [
-            {
-              "type": "on",
-              "label": "2"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "E"
         },
         {
           "name": "1弦",
-          "note": "A",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "A"
         }
+      ],
+      "frets": [
+        0,
+        0,
+        2,
+        0
+      ],
+      "fingers": [
+        "",
+        "",
+        "2",
+        ""
       ]
     },
     {
       "code": "F",
+      "maxFret": 5,
       "strings": [
         {
           "name": "4弦",
-          "note": "G",
-          "dots": [
-            {
-              "type": "on",
-              "label": "2"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "G"
         },
         {
           "name": "3弦",
-          "note": "C",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "C"
         },
         {
           "name": "2弦",
-          "note": "E",
-          "dots": [
-            {
-              "type": "on",
-              "label": "1"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "E"
         },
         {
           "name": "1弦",
-          "note": "A",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "A"
         }
+      ],
+      "frets": [
+        2,
+        0,
+        1,
+        0
+      ],
+      "fingers": [
+        "2",
+        "",
+        "1",
+        ""
       ]
     },
     {
       "code": "G",
+      "maxFret": 5,
       "strings": [
         {
           "name": "4弦",
-          "note": "G",
-          "dots": [
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "G"
         },
         {
           "name": "3弦",
-          "note": "C",
-          "dots": [
-            {
-              "type": "on",
-              "label": "2"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "C"
         },
         {
           "name": "2弦",
-          "note": "E",
-          "dots": [
-            {
-              "type": "on",
-              "label": "3"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "E"
         },
         {
           "name": "1弦",
-          "note": "A",
-          "dots": [
-            {
-              "type": "on",
-              "label": "1"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            },
-            {
-              "type": "open"
-            }
-          ]
+          "note": "A"
         }
+      ],
+      "frets": [
+        0,
+        2,
+        3,
+        2
+      ],
+      "fingers": [
+        "",
+        "1",
+        "3",
+        "2"
       ]
-    }
-  ],
-  "STAGE2_PHASES": [
-    {
-      "title": "READY!",
-      "text": "このコードを構えてね",
-      "seconds": 1.5
-    },
-    {
-      "title": "SET!",
-      "text": "指を置いたら深呼吸",
-      "seconds": 1.0
-    },
-    {
-      "title": "PLAY!",
-      "text": "時間内に鳴らして！",
-      "seconds": 4.0
     }
   ]
 }

@@ -24,25 +24,37 @@
     </header>
 
     <main class="stage2">
-      <div class="bgCode wobble" id="bgCode">C</div>
+      <!-- 背景のふわふわコード文字 -->
+      <div class="bgCode wobble" id="bgCode">--</div>
 
-      <section class="fretOverlay" aria-label="Chord overlay">
-        <div class="overlayTitle">
-          <span class="overlayTitle__hint">押さえる位置</span>
-          <span class="overlayTitle__code" id="codeLabel">C</span>
+      <!-- フレットボード（うっすら） -->
+      <section class="boardCard">
+        <div class="boardHeader">
+          <div class="boardHeader__left">
+            <div class="boardHint">押さえる位置（フレット）</div>
+            <div class="boardTitle"><span id="codeLabel">--</span></div>
+          </div>
+          <div class="boardHeader__right">
+            <button class="chip" id="toggleOverlayBtn">表示：うっすら</button>
+          </div>
         </div>
 
-        <div class="stringsGrid" id="stringsGrid"></div>
+        <div class="fretboardWrap">
+          <div class="fretboard" id="fretboard" aria-label="Fretboard">
+            <!-- JSで生成 -->
+          </div>
+        </div>
 
-        <div class="overlayNote">
-          ※静的モック（判定はまだ） / 「指位置：うっすら/濃い」ボタンで濃さ変更
+        <div class="boardNote">
+          ※ 静的モックです（判定はまだ）／ “●” は押さえる場所、 “○” は開放弦です
         </div>
       </section>
 
+      <!-- 指示（アメコミ吹き出し） -->
       <section class="prompt">
         <div class="speech">
           <div class="speech__title" id="phaseTitle">READY!</div>
-          <div class="speech__text" id="phaseText">読み込み中…</div>
+          <div class="speech__text" id="phaseText">このコードを構えてね</div>
         </div>
 
         <div class="controls">
@@ -52,20 +64,24 @@
 
         <div class="smallControls">
           <button class="chip" id="phaseBtn">フェーズ切替</button>
-          <button class="chip" id="toggleOverlayBtn">指位置：うっすら/濃い</button>
           <button class="chip" id="toggleWobbleBtn">背景：ふわふわ ON/OFF</button>
+          <button class="chip" id="demoOkBtn">演出デモ：OK!!</button>
+          <button class="chip chip--danger" id="demoNgBtn">演出デモ：MISS!</button>
         </div>
-
-        <div class="debug" id="debug"></div>
       </section>
 
+      <!-- 演出（アメコミ） -->
       <div class="comicBurst" id="burst" hidden>
-        <div class="comicBurst__text">OK!!</div>
+        <div class="comicBurst__text" id="burstText">OK!!</div>
       </div>
+
+      <div class="debug" id="debug">loading…</div>
     </main>
 
     <footer class="bottombar">
-      <div class="bottombar__hint">iPhone縦画面想定 / アメコミ風UI（静的モック）</div>
+      <div class="bottombar__hint">
+        iPhone縦画面想定 / アメコミ風UI（静的モック）
+      </div>
     </footer>
   </div>
 
