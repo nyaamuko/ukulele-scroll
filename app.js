@@ -203,7 +203,7 @@ function showComic(boom, bubble){
   comic.setAttribute("aria-hidden","false");
   void comic.offsetWidth;
   comic.classList.add("show");
-  comicUntil = performance.now() + 750;
+  comicUntil = performance.now() + 1800;
 }
 function updateComic(){
   if(comicUntil && performance.now() > comicUntil){
@@ -219,21 +219,26 @@ let stage = STAGE.TUNING;
 
 // ===== Tuning (pitch detect) =====
 const TUNING_TARGETS = [
-  { name:"G", freq:392.00 },
-  { name:"C", freq:261.63 },
-  { name:"E", freq:329.63 },
-  { name:"A", freq:440.00 }
+  { name:"G", jp:"ソ", string:"4弦", freq:392.00 },
+  { name:"C", jp:"ド", string:"3弦", freq:261.63 },
+  { name:"E", jp:"ミ", string:"2弦", freq:329.63 },
+  { name:"A", jp:"ラ", string:"1弦", freq:440.00 }
 ];
 const TUNE_TOL_CENTS = 12;   // ±12 cents
 const TUNE_NEED_MS  = 1200; // stable duration
 let tuneHoldMs = 0;
 let lastTuneTs = 0;
 let tuningCleared = false;
+let tuneStep = 0; // 0..3
+const tunedSteps = [false,false,false,false];
+
 
 function resetTuning(){
   tuneHoldMs = 0;
   lastTuneTs = 0;
   tuningCleared = false;
+  tuneStep = 0;
+  for(let i=0;i<tunedSteps.length;i++) tunedSteps[i] = false;
 }
 
 function freqToCents(freq, targetHz){
@@ -249,7 +254,17 @@ function nearestTarget(freq){
       best = { ...t, cents, abs };
     }
   }
-  return best;
+  
+// 現在のチューニング課題（順番固定：4弦G→3弦C→2弦E→1弦A）
+function currentStepTarget(freq){
+  const t = TUNING_TARGETS[tuneStep] || null;
+  if(!t || !freq) return null;
+  const cents = freqToCents(freq, t.freq);
+  const abs = Math.abs(cents);
+  return { ...t, cents, abs };
+}
+
+return best;
 }
 
 // Autocorrelation pitch detection (simple)
@@ -514,6 +529,16 @@ function drawTuningUI(freq, target){
   ctx.font = `${16*dpr}px system-ui, -apple-system, sans-serif`;
   ctx.fillText("STAGE 1 : TUNING", 14*dpr, 28*dpr);
   ctx.restore();
+  
+  // 4音の順番表示（初心者向け）
+  ctx.save();
+  ctx.fillStyle = "rgba(234,240,255,0.70)";
+  ctx.font = `${13*dpr}px system-ui, -apple-system, sans-serif`;
+  const seq = TUNING_TARGETS.map((t, i) => `${t.string}${t.name}`).join(" → ");
+  ctx.fillText(seq, 14*dpr, 48*dpr);
+  const prog = TUNING_TARGETS.map((t,i)=> (i < tuneStep ? "✅" : (i===tuneStep ? "👉" : "⬜")) + t.name).join("  ");
+  ctx.fillText(prog, 14*dpr, 66*dpr);
+  ctx.restore();
 
   // ring
   ctx.save();
@@ -720,7 +745,7 @@ function loop(ts){
   if(stage === STAGE.TUNING){
     // pitch detect
     const freq = detectPitchHz(dataTime, sampleRate);
-    const target = (freq ? nearestTarget(freq) : null);
+    const target = currentStepTarget(freq);
 
     // hold in tune
     const now = performance.now();
@@ -739,17 +764,36 @@ function loop(ts){
     drawTuningUI(freq || 0, target);
 
     if(!tuningCleared && tuneHoldMs >= TUNE_NEED_MS){
-      tuningCleared = true;
-      showComic("BAM!", "チューニングOK！次はゲームだ！");
-      beep(980, 120, "triangle", 0.06);
+      // この音（弦）をクリア → 次の音へ
+      tunedSteps[tuneStep] = true;
 
-      // switch to game after a short delay
-      setTimeout(() => {
-        if(!running) return;
-        stage = STAGE.GAME;
-        startTs = performance.now();
-        setStatus("STAGE 2：中心で鳴らしてコンボを繋ぐ！");
-      }, 500);
+      const cur = TUNING_TARGETS[tuneStep];
+      showComic("OK!", `${cur.string} ${cur.name}（${cur.jp}） クリア！`);
+      beep(980, 110, "triangle", 0.06);
+
+      tuneHoldMs = 0;
+
+      if(tuneStep < TUNING_TARGETS.length - 1){
+        tuneStep++;
+        const nxt = TUNING_TARGETS[tuneStep];
+        setTimeout(() => {
+          showComic("NEXT", `${nxt.string} ${nxt.name}（${nxt.jp}）を鳴らそう`);
+        }, 220);
+      }else{
+        tuningCleared = true;
+        setTimeout(() => {
+          showComic("BAM!", "4音チューニング完了！次はゲームだ！");
+          beep(1040, 140, "triangle", 0.06);
+        }, 220);
+
+        // switch to game after a short delay
+        setTimeout(() => {
+          if(!running) return;
+          stage = STAGE.GAME;
+          startTs = performance.now();
+          setStatus("STAGE 2：中心で鳴らしてコンボを繋ぐ！");
+        }, 900);
+      }
     }
 
   }else{
