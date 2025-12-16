@@ -252,7 +252,6 @@ let tuneStep = 0; // 0..3
 const tunedSteps = [false,false,false,false];
 
 // TESTモード：楽器がない時用（どんな音でもOK）
-let testMode = false;
 
 
 function resetTuning(){
