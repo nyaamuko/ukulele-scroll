@@ -1,7 +1,6 @@
-// UkeFlow Pulse Trainer - Stage System (Tuning -> Game) + Comic comments
-// Works on GitHub Pages + iPhone Safari (https)
-// Stage 1: tuning (pitch detect with autocorrelation)
-// Stage 2: pulse rhythm game (score/combo/life) triggered after tuning clear
+// UkeFlow Pulse Trainer - Stage System (Forced tuning order G->C->E->A) + Big comic stage splash
+// Stage 1: Tuning (must clear G then C then E then A)
+// Stage 2: Pulse Game (after clearing all strings)
 
 const cv = document.getElementById("cv");
 const ctx = cv.getContext("2d");
@@ -39,6 +38,7 @@ const resultStats = document.getElementById("resultStats");
 const btnRestart = document.getElementById("btnRestart");
 const btnCloseResult = document.getElementById("btnCloseResult");
 
+// ===== Canvas =====
 let dpr = 1;
 function resizeCanvas(){
   const rect = cv.getBoundingClientRect();
@@ -102,7 +102,7 @@ function getRms(){
   return Math.sqrt(sum / dataTime.length);
 }
 
-// ===== SFX (simple oscillator) =====
+// ===== SFX =====
 function beep(freq, durMs, type="sine", gain=0.05){
   if(!audioCtx || !sfxToggle.checked) return;
   const t0 = audioCtx.currentTime;
@@ -196,14 +196,16 @@ async function loadChart(){
 
 // ===== Comic =====
 let comicUntil = 0;
-function showComic(boom, bubble){
+function showComic(boom, bubble, isStageSplash=false){
   comicBoom.textContent = boom;
   comicBubble.textContent = bubble;
+  comic.classList.toggle("stageSplash", !!isStageSplash);
+
   comic.classList.remove("show");
   comic.setAttribute("aria-hidden","false");
   void comic.offsetWidth;
   comic.classList.add("show");
-  comicUntil = performance.now() + 750;
+  comicUntil = performance.now() + (isStageSplash ? 900 : 750);
 }
 function updateComic(){
   if(comicUntil && performance.now() > comicUntil){
@@ -217,39 +219,27 @@ function updateComic(){
 const STAGE = { TUNING: 1, GAME: 2 };
 let stage = STAGE.TUNING;
 
-// ===== Tuning (pitch detect) =====
+// ===== Tuning (forced order) =====
 const TUNING_TARGETS = [
   { name:"G", freq:392.00 },
   { name:"C", freq:261.63 },
   { name:"E", freq:329.63 },
   { name:"A", freq:440.00 }
 ];
-const TUNE_TOL_CENTS = 12;   // ±12 cents
-const TUNE_NEED_MS  = 1200; // stable duration
+let tuneIdx = 0;               // 0..3 -> G,C,E,A
+const TUNE_TOL_CENTS = 12;     // ±12 cents
+const TUNE_NEED_MS  = 900;     // stable duration per string
 let tuneHoldMs = 0;
 let lastTuneTs = 0;
-let tuningCleared = false;
 
 function resetTuning(){
+  tuneIdx = 0;
   tuneHoldMs = 0;
   lastTuneTs = 0;
-  tuningCleared = false;
 }
 
 function freqToCents(freq, targetHz){
   return 1200 * Math.log2(freq / targetHz);
-}
-
-function nearestTarget(freq){
-  let best = null;
-  for(const t of TUNING_TARGETS){
-    const cents = freqToCents(freq, t.freq);
-    const abs = Math.abs(cents);
-    if(!best || abs < best.abs){
-      best = { ...t, cents, abs };
-    }
-  }
-  return best;
 }
 
 // Autocorrelation pitch detection (simple)
@@ -267,11 +257,11 @@ function detectPitchHz(buf, sr){
     rms += v*v;
   }
   rms = Math.sqrt(rms / buf.length);
-  if(rms < 0.008) return null; // too quiet
+  if(rms < 0.008) return null;
 
   const size = x.length;
-  const maxLag = Math.min(Math.floor(sr / 80), size - 1);  // ~80Hz
-  const minLag = Math.max(2, Math.floor(sr / 1000));       // ~1000Hz
+  const maxLag = Math.min(Math.floor(sr / 80), size - 1);
+  const minLag = Math.max(2, Math.floor(sr / 1000));
 
   let bestLag = -1;
   let bestVal = 0;
@@ -290,6 +280,19 @@ function detectPitchHz(buf, sr){
   const freq = sr / bestLag;
   if(freq < 80 || freq > 1000) return null;
   return freq;
+}
+
+function nearestName(freq){
+  // used only to display "今の音は◯っぽい"
+  let best = null;
+  for(const t of TUNING_TARGETS){
+    const cents = freqToCents(freq, t.freq);
+    const abs = Math.abs(cents);
+    if(!best || abs < best.abs){
+      best = { name: t.name, abs };
+    }
+  }
+  return best ? best.name : "?";
 }
 
 // ===== Game stats =====
@@ -504,13 +507,18 @@ function drawBackground(){
   ctx.restore();
 }
 
-function drawTuningUI(freq, target){
+function drawTuningUI(freq){
   const w = cv.width, h = cv.height;
   const cx = w*0.52;
   const cy = h*0.56;
 
+  const target = TUNING_TARGETS[tuneIdx];
+  const cents = freq ? freqToCents(freq, target.freq) : 0;
+  const c = clamp(cents, -50, 50);
+
+  // Stage label
   ctx.save();
-  ctx.fillStyle = "rgba(234,240,255,0.90)";
+  ctx.fillStyle = "rgba(234,240,255,0.92)";
   ctx.font = `${16*dpr}px system-ui, -apple-system, sans-serif`;
   ctx.fillText("STAGE 1 : TUNING", 14*dpr, 28*dpr);
   ctx.restore();
@@ -522,17 +530,23 @@ function drawTuningUI(freq, target){
   ctx.beginPath(); ctx.arc(cx,cy, 120*dpr, 0, Math.PI*2); ctx.stroke();
   ctx.restore();
 
-  // target note letter
+  // required string
   ctx.save();
-  ctx.fillStyle = "rgba(234,240,255,0.92)";
-  ctx.font = `${44*dpr}px system-ui, -apple-system, sans-serif`;
+  ctx.fillStyle = "rgba(234,240,255,0.95)";
+  ctx.font = `${46*dpr}px system-ui, -apple-system, sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText(target ? target.name : "—", cx, cy - 18*dpr);
+  ctx.fillText(target.name, cx, cy - 18*dpr);
+  ctx.restore();
+
+  // progress small text (G->C->E->A)
+  ctx.save();
+  ctx.fillStyle = "rgba(152,170,204,0.95)";
+  ctx.font = `${13*dpr}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace`;
+  ctx.textAlign = "center";
+  ctx.fillText(`TARGET: ${target.name}   (${tuneIdx+1}/4)`, cx, cy - 56*dpr);
   ctx.restore();
 
   // cents bar
-  const cents = target ? target.cents : 0;
-  const c = clamp(cents, -50, 50);
   const barW = 360*dpr, barH = 16*dpr;
   const bx = cx - barW/2, by = cy + 24*dpr;
 
@@ -559,18 +573,20 @@ function drawTuningUI(freq, target){
   ctx.stroke();
   ctx.restore();
 
-  // text
+  // info text
+  const heard = freq ? nearestName(freq) : "—";
+  const txt = freq
+    ? `${freq.toFixed(1)} Hz  (${cents>=0?"+":""}${cents.toFixed(1)} cents)   heard:${heard}`
+    : `音を鳴らしてください（いまは ${target.name}）`;
+
   ctx.save();
   ctx.fillStyle = "rgba(152,170,204,0.95)";
   ctx.font = `${13*dpr}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace`;
   ctx.textAlign = "center";
-  const txt = target
-    ? `${freq.toFixed(1)} Hz  (${cents>=0?"+":""}${cents.toFixed(1)} cents)`
-    : `音を鳴らしてください`;
   ctx.fillText(txt, cx, by + 46*dpr);
   ctx.restore();
 
-  // progress
+  // hold progress
   const p = clamp(tuneHoldMs / TUNE_NEED_MS, 0, 1);
   const pw = 360*dpr, ph = 10*dpr;
   const px0 = cx - pw/2, py0 = by + 66*dpr;
@@ -588,12 +604,12 @@ function drawTuningUI(freq, target){
   ctx.fillText(`安定チェック ${Math.round(p*100)}%`, cx, py0 + 26*dpr);
   ctx.restore();
 
-  // hint
+  // footer hint
   ctx.save();
   ctx.fillStyle = "rgba(152,170,204,0.92)";
   ctx.font = `${12*dpr}px system-ui, -apple-system, sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText("G / C / E / A のどれかに近い音で判定します（合格するとゲーム開始）", cx, h - 22*dpr);
+  ctx.fillText("順番固定：G → C → E → A（1本ずつOKにして進みます）", cx, h - 22*dpr);
   ctx.restore();
 }
 
@@ -628,7 +644,6 @@ function drawGameUI(ts){
   ctx.beginPath(); ctx.arc(cx,cy, coreR*0.78, 0, Math.PI*2); ctx.stroke();
   ctx.restore();
 
-  // particles
   stepParticles();
   ctx.save();
   ctx.fillStyle = "rgba(255,255,255,0.12)";
@@ -685,16 +700,22 @@ let lastHitTs = 0;
 function startRun(){
   resultOverlay.classList.remove("show");
   resultOverlay.setAttribute("aria-hidden","true");
+
   stage = STAGE.TUNING;
   resetTuning();
   resetGame();
+
   running = true;
-  startTs = performance.now(); // used in GAME stage; ignored in tuning
+  startTs = performance.now();
   lastHitTs = 0;
-  setStatus("開始：STAGE 1 チューニング（弦を1本鳴らして合わせる）");
+
   btnStart.disabled = true;
   btnStop.disabled = false;
-  showComic("READY!", "まずはチューニング！G/C/E/AのどれでもOK");
+
+  showComic("STAGE 1", "TUNING  (G→C→E→A)", true);
+  setStatus("開始：STAGE 1 チューニング（Gから）");
+  beep(880, 120, "triangle", 0.06);
+
   loop();
 }
 
@@ -708,7 +729,6 @@ function stopRun(){
 function loop(ts){
   if(!running) return;
 
-  // meter
   const rms = getRms();
   const level = clamp(rms / 0.12, 0, 1);
   meterBar.style.width = `${Math.round(level*100)}%`;
@@ -718,42 +738,58 @@ function loop(ts){
   drawBackground();
 
   if(stage === STAGE.TUNING){
-    // pitch detect
     const freq = detectPitchHz(dataTime, sampleRate);
-    const target = (freq ? nearestTarget(freq) : null);
 
-    // hold in tune
     const now = performance.now();
     if(!lastTuneTs) lastTuneTs = now;
     const dt = now - lastTuneTs;
     lastTuneTs = now;
 
-    if(target && target.abs <= TUNE_TOL_CENTS){
-      tuneHoldMs += dt;
-      // little positive feedback
-      if(tuneHoldMs > 200 && Math.abs(tuneHoldMs % 400) < 30) beep(780, 35, "sine", 0.025);
+    const target = TUNING_TARGETS[tuneIdx];
+
+    if(freq){
+      const cents = freqToCents(freq, target.freq);
+      const abs = Math.abs(cents);
+
+      if(abs <= TUNE_TOL_CENTS){
+        tuneHoldMs += dt;
+        if(tuneHoldMs > 240 && Math.abs(tuneHoldMs % 420) < 30) beep(780, 35, "sine", 0.02);
+      }else{
+        tuneHoldMs = Math.max(0, tuneHoldMs - dt*1.9);
+      }
     }else{
-      tuneHoldMs = Math.max(0, tuneHoldMs - dt*1.8);
+      tuneHoldMs = Math.max(0, tuneHoldMs - dt*2.2);
     }
 
-    drawTuningUI(freq || 0, target);
+    drawTuningUI(freq);
 
-    if(!tuningCleared && tuneHoldMs >= TUNE_NEED_MS){
-      tuningCleared = true;
-      showComic("BAM!", "チューニングOK！次はゲームだ！");
-      beep(980, 120, "triangle", 0.06);
+    if(tuneHoldMs >= TUNE_NEED_MS){
+      // string cleared
+      const cleared = TUNING_TARGETS[tuneIdx].name;
+      tuneHoldMs = 0;
 
-      // switch to game after a short delay
-      setTimeout(() => {
-        if(!running) return;
-        stage = STAGE.GAME;
-        startTs = performance.now();
+      if(tuneIdx < 3){
+        tuneIdx += 1;
+        const next = TUNING_TARGETS[tuneIdx].name;
+        showComic("BAM!", `${cleared} OK!  NEXT: ${next}`, false);
+        beep(980, 90, "triangle", 0.06);
+        setStatus(`チューニングOK：${cleared} → 次は ${next}`);
+      }else{
+        // all clear -> stage 2
+        showComic("STAGE 2", "PULSE GAME  START!", true);
+        beep(1040, 140, "triangle", 0.07);
         setStatus("STAGE 2：中心で鳴らしてコンボを繋ぐ！");
-      }, 500);
+
+        // switch after splash
+        setTimeout(() => {
+          if(!running) return;
+          stage = STAGE.GAME;
+          startTs = performance.now();
+        }, 700);
+      }
     }
 
   }else{
-    // GAME stage
     const curT = nowSec(ts);
 
     const canHit = (performance.now() - lastHitTs) > 120;
@@ -766,7 +802,6 @@ function loop(ts){
     judgeAtTime(curT, didStrum);
     drawGameUI(ts);
 
-    // game over by life
     if(life <= 0.001){
       setStatus("GAME OVER");
       running = false;
@@ -777,14 +812,13 @@ function loop(ts){
       return;
     }
 
-    // finish
     const lastT = notes.length ? notes[notes.length-1].t : 0;
     if(curT > lastT + 2.5){
       running = false;
       btnStart.disabled = false;
       btnStop.disabled = true;
       setStatus("終了（RESULT）");
-      showComic("POW!", "ナイス！リザルトを見る？");
+      showComic("POW!", "ナイス！リザルト！");
       openResult();
       return;
     }
@@ -826,6 +860,7 @@ btnCloseResult.addEventListener("click", () => {
 
 // ===== Init =====
 applyDifficulty(diffSelect.value);
+recomputeTrigger();
 setLife(1.0);
 setHUD();
 setStatus("待機中：パターン読み込み → マイク許可 → キャリブレーション → 開始");
