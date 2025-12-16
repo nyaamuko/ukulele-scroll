@@ -1,10 +1,8 @@
-// app.js
-// =====================================================
-// マイク入力 → ピッチ推定（簡易オートコリレーション）
-// 4弦G/3弦C/2弦A/1弦E のチューニング必須ゲート
-// STAGE表示は最低1.6秒（早すぎ防止）
-// STAGE1：1弦E を鳴らしてクリア
-// =====================================================
+// app.js（FIX版：前回の動いた initMic 方式に寄せる）
+// -----------------------------------------------------
+// 目的：まず「レベルバーが動く＝音が入ってる」を確実にする
+// その上でピッチ検出→チューニング→STAGE1へ
+// -----------------------------------------------------
 
 // ---- UI refs
 const micBtn = document.getElementById("micBtn");
@@ -25,9 +23,13 @@ const stageResult = document.getElementById("stageResult");
 const retryBtn = document.getElementById("retryBtn");
 
 // ---- tuning params
-const TOLERANCE_CENTS = 20;     // ±20 cents
-const HOLD_MS = 350;            // 0.35秒安定でOK
-const MIN_RMS = 0.018;          // 無音/ノイズ除外（環境で調整）
+const TOLERANCE_CENTS = 25;
+const HOLD_MS = 300;
+
+// レベル表示（反応しない対策でかなり甘く）
+const MIN_RMS_FOR_LEVEL = 0.0005;   // これ以下でもバーは少し動くようにする
+const MIN_RMS_FOR_PITCH = 0.0045;   // ピッチ推定に入る最低ライン
+
 const MIN_HZ = 60;
 const MAX_HZ = 1200;
 
@@ -36,12 +38,10 @@ const tuningState = UKE_STRINGS.map(s => ({
   ...s,
   ok: false,
   lastOkStartMs: null,
-  lastHz: null,
-  lastCents: null,
 }));
+let selectedIndex = 0;
 
-let selectedIndex = 0;      // 今調整している弦（タップで切替）
-let stageMode = "TUNING";   // "TUNING" | "STAGE1"
+let stageMode = "TUNING"; // "TUNING" | "STAGE1"
 let stage1Cleared = false;
 
 // ---- audio
@@ -50,11 +50,11 @@ let analyser = null;
 let micStream = null;
 let rafId = null;
 
-const bufferLen = 2048;
-const timeData = new Float32Array(bufferLen);
+const FFT_SIZE = 2048;
+let dataTime = null;
 
 // ----------------------------
-// UI: build tuning rows
+// UI
 // ----------------------------
 function renderStrings() {
   stringsWrap.innerHTML = "";
@@ -103,7 +103,6 @@ function renderStrings() {
 function allTuned() {
   return tuningState.every(s => s.ok);
 }
-
 function updateStartButton() {
   const ready = allTuned();
   startBtn.disabled = !ready;
@@ -111,44 +110,45 @@ function updateStartButton() {
 }
 
 // ----------------------------
-// Banner: readable stage text
+// Banner
 // ----------------------------
 function showBanner(text) {
   banner.style.display = "flex";
   banner.style.transition = "none";
   banner.style.opacity = "0";
   banner.textContent = text;
-
   requestAnimationFrame(() => {
     banner.style.transition = "opacity 0.35s linear";
     banner.style.opacity = "1";
   });
-
-  // 最低保持 1.6秒
   setTimeout(() => {
     banner.style.transition = "opacity 0.45s linear";
     banner.style.opacity = "0";
-    setTimeout(() => {
-      banner.style.display = "none";
-    }, 500);
+    setTimeout(() => (banner.style.display = "none"), 520);
   }, 1600);
 }
 
 // ----------------------------
-// Pitch detection (autocorrelation)
+// RMS（前回方式：getFloatTimeDomainDataで取る）
 // ----------------------------
-function computeRMS(buf) {
+function getRms() {
+  if (!analyser) return 0;
+  analyser.getFloatTimeDomainData(dataTime);
   let sum = 0;
-  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-  return Math.sqrt(sum / buf.length);
+  for (let i = 0; i < dataTime.length; i++) {
+    const v = dataTime[i];
+    sum += v * v;
+  }
+  return Math.sqrt(sum / dataTime.length);
 }
 
-// returns Hz or null
+// ----------------------------
+// Pitch detection (autocorrelation) ※簡易
+// ----------------------------
 function autoCorrelatePitch(buf, sampleRate) {
-  // very simple autocorrelation
   const n = buf.length;
 
-  // Remove DC offset
+  // DC除去
   let mean = 0;
   for (let i = 0; i < n; i++) mean += buf[i];
   mean /= n;
@@ -156,79 +156,46 @@ function autoCorrelatePitch(buf, sampleRate) {
   const x = new Float32Array(n);
   for (let i = 0; i < n; i++) x[i] = buf[i] - mean;
 
-  // Search range
   const minLag = Math.floor(sampleRate / MAX_HZ);
   const maxLag = Math.floor(sampleRate / MIN_HZ);
 
   let bestLag = -1;
   let bestCorr = 0;
 
-  // Normalize energy
   let energy = 0;
   for (let i = 0; i < n; i++) energy += x[i] * x[i];
   if (energy < 1e-8) return null;
 
   for (let lag = minLag; lag <= maxLag; lag++) {
     let corr = 0;
-    for (let i = 0; i < n - lag; i++) {
-      corr += x[i] * x[i + lag];
-    }
+    for (let i = 0; i < n - lag; i++) corr += x[i] * x[i + lag];
     corr = corr / energy;
-
     if (corr > bestCorr) {
       bestCorr = corr;
       bestLag = lag;
     }
   }
 
-  // confidence threshold
-  if (bestLag < 0 || bestCorr < 0.18) return null;
+  // 信頼度しきい値（少し甘く）
+  if (bestLag < 0 || bestCorr < 0.14) return null;
 
-  // Parabolic interpolation for smoother Hz
-  // y(-1), y(0), y(+1)
-  const lag = bestLag;
-  const y0 = corrAtLag(x, energy, lag);
-  const y1 = corrAtLag(x, energy, lag - 1);
-  const y2 = corrAtLag(x, energy, lag + 1);
-
-  const denom = (2 * y0 - y1 - y2);
-  let shift = 0;
-  if (Math.abs(denom) > 1e-6) {
-    shift = 0.5 * (y2 - y1) / denom;
-  }
-
-  const refinedLag = lag + shift;
-  const hz = sampleRate / refinedLag;
-
+  const hz = sampleRate / bestLag;
   if (!Number.isFinite(hz) || hz < MIN_HZ || hz > MAX_HZ) return null;
   return hz;
 }
 
-function corrAtLag(x, energy, lag) {
-  if (lag <= 0 || lag >= x.length) return 0;
-  let c = 0;
-  for (let i = 0; i < x.length - lag; i++) c += x[i] * x[i + lag];
-  return c / energy;
-}
-
 // ----------------------------
-// Tuning logic
+// 判定
 // ----------------------------
 function applyTuning(freqHz, nowMs) {
   const s = tuningState[selectedIndex];
   const cd = centsDiff(freqHz, s.hz);
-
-  s.lastHz = freqHz;
-  s.lastCents = cd;
-
   const within = Math.abs(cd) <= TOLERANCE_CENTS;
 
-  // UI quick status
   hzText.textContent = `${freqHz.toFixed(2)}`;
   centsText.textContent = `${cd.toFixed(1)}`;
   judgeText.textContent = within ? "OK範囲" : (cd > 0 ? "高い（締めすぎ）" : "低い（緩い）");
 
-  // Confirm hold
   if (!s.ok) {
     if (within) {
       if (s.lastOkStartMs == null) s.lastOkStartMs = nowMs;
@@ -236,7 +203,6 @@ function applyTuning(freqHz, nowMs) {
         s.ok = true;
         s.lastOkStartMs = null;
 
-        // 次の未OKへ自動移動
         const next = tuningState.findIndex(x => !x.ok);
         if (next >= 0) selectedIndex = next;
 
@@ -249,9 +215,6 @@ function applyTuning(freqHz, nowMs) {
   }
 }
 
-// ----------------------------
-// Stage1 logic: require E
-// ----------------------------
 function stage1Check(freqHz) {
   if (stage1Cleared) return;
   const target = UKE_STRINGS.find(x => x.key === "E");
@@ -269,64 +232,71 @@ function stage1Check(freqHz) {
 }
 
 // ----------------------------
-// Audio loop
+// ループ（まずレベルバーを確実に動かす）
 // ----------------------------
 function loop() {
   if (!analyser || !audioCtx) return;
 
-  analyser.getFloatTimeDomainData(timeData);
+  const rms = getRms();
 
-  const rms = computeRMS(timeData);
-  const level = Math.min(1, Math.max(0, (rms - 0.005) / 0.06));
-  levelBar.style.width = `${(level * 100).toFixed(0)}%`;
+  // レベル表示：とにかく動かす（0でも少しだけ出るように）
+  const scaled = Math.min(1, Math.max(0, (rms - MIN_RMS_FOR_LEVEL) / 0.03));
+  levelBar.style.width = `${(scaled * 100).toFixed(0)}%`;
 
-  const nowMs = performance.now();
-
-  if (rms >= MIN_RMS) {
-    const hz = autoCorrelatePitch(timeData, audioCtx.sampleRate);
-    if (hz) {
-      if (stageMode === "TUNING") {
-        applyTuning(hz, nowMs);
-      } else if (stageMode === "STAGE1") {
-        stage1Check(hz);
-      }
-    } else {
-      // Not confident
-      hzText.textContent = "--";
-      centsText.textContent = "--";
-      judgeText.textContent = "検出中…（単音で）";
-    }
-  } else {
+  // ピッチ判定は、ある程度音が入ったときだけ
+  if (rms < MIN_RMS_FOR_PITCH) {
     hzText.textContent = "--";
     centsText.textContent = "--";
-    judgeText.textContent = "小さすぎ（近づけて）";
+    judgeText.textContent = "入力中…（単音でゆっくり）";
+    rafId = requestAnimationFrame(loop);
+    return;
+  }
+
+  // analyserの中身（dataTime）からピッチ推定
+  const hz = autoCorrelatePitch(dataTime, audioCtx.sampleRate);
+
+  if (!hz) {
+    hzText.textContent = "--";
+    centsText.textContent = "--";
+    judgeText.textContent = "検出中…（単音で）";
+  } else {
+    const nowMs = performance.now();
+    if (stageMode === "TUNING") applyTuning(hz, nowMs);
+    else if (stageMode === "STAGE1") stage1Check(hz);
   }
 
   rafId = requestAnimationFrame(loop);
 }
 
 // ----------------------------
-// Start/Stop mic
+// マイク開始（前回方式に寄せる：resume → getUserMedia）
 // ----------------------------
 async function startMic() {
   micBtn.disabled = true;
   micBtn.textContent = "🎤 起動中…";
+  judgeText.textContent = "マイク要求中…";
 
   try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    // iOS対策：ユーザー操作中にresume
+    await audioCtx.resume();
+
     micStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true,
-      }
+        autoGainControl: true
+      },
+      video: false
     });
 
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const src = audioCtx.createMediaStreamSource(micStream);
-
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = bufferLen;
-    analyser.smoothingTimeConstant = 0.0;
+    analyser.fftSize = FFT_SIZE;
+    dataTime = new Float32Array(analyser.fftSize);
 
     src.connect(analyser);
 
@@ -334,15 +304,15 @@ async function startMic() {
     micBtn.textContent = "🎤 マイク稼働中";
     judgeText.textContent = "検出中…（単音で）";
 
-    // begin loop
     if (rafId) cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(loop);
+
   } catch (e) {
     console.error(e);
     micBtn.disabled = false;
     micBtn.textContent = "🎤 マイク開始";
-    judgeText.textContent = "マイク許可が必要です";
-    alert("マイクの許可が必要です。ブラウザの設定から許可してください。");
+    judgeText.textContent = "マイクNG（許可/https/デバイス）";
+    alert("マイクが使えません。\n・マイク許可\n・https または localhost\n・入力デバイス選択\nを確認してください。");
   }
 }
 
@@ -365,6 +335,8 @@ function stopMic() {
   }
 
   analyser = null;
+  dataTime = null;
+
   levelBar.style.width = "0%";
   hzText.textContent = "--";
   centsText.textContent = "--";
@@ -375,7 +347,7 @@ function stopMic() {
 }
 
 // ----------------------------
-// Stage controls
+// Stage
 // ----------------------------
 function startStage1() {
   stageMode = "STAGE1";
@@ -383,7 +355,7 @@ function startStage1() {
   stageResult.textContent = "";
   stage.classList.remove("hidden");
   stageTitle.textContent = "STAGE 1";
-  stageText.textContent = "1弦 E を鳴らしてみよう（±20centsでクリア）";
+  stageText.textContent = "1弦 E を鳴らしてみよう（±25centsでクリア）";
   judgeText.textContent = "Eを狙おう";
 }
 
@@ -407,24 +379,15 @@ startBtn.addEventListener("click", () => {
     showBanner("TUNING REQUIRED\n4弦すべてOKで解除");
     return;
   }
-
-  // 読めるステージ表示（早すぎ防止）
   showBanner("STAGE 1\nひとつの音を鳴らしてみよう");
-
-  // ステージ開始は少し遅らせる
-  setTimeout(() => {
-    startStage1();
-  }, 1800);
+  setTimeout(() => startStage1(), 1800);
 });
 
 retryBtn.addEventListener("click", () => {
   showBanner("STAGE 1\nもう一度いきましょう");
-  setTimeout(() => {
-    resetStage1();
-  }, 1800);
+  setTimeout(() => resetStage1(), 1800);
 });
 
-// ページ離脱時に止める
 window.addEventListener("beforeunload", () => {
   try { stopMic(); } catch {}
 });
