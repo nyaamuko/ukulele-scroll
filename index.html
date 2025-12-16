@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Ukeflow - STAGE2 Mock</title>
+  <title>Ukeflow - STAGE2 Mock v3</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -23,9 +23,8 @@
       </div>
     </header>
 
-    <main class="stage2">
-      <div class="comicBg" aria-hidden="true"></div>
-      <div class="bgCode wobble2" id="bgCode">--</div>
+    <main class="stage2" id="stage2">
+      <div class="bgCode wobbleStrong" id="bgCode">--</div>
 
       <section class="boardCard">
         <div class="boardHeader">
@@ -35,26 +34,52 @@
           </div>
 
           <div class="boardHeader__mid">
-            <div class="leftHand">
-              <div class="leftHand__label">左手</div>
-              <div class="handRow">
-                <div class="handIcon" aria-hidden="true">🖐️</div>
-                <div class="fingerDots" id="fingerDots"></div>
+            <div class="handWrap" aria-label="Left hand">
+              <div class="hand">
+                <button class="finger" data-f="人" title="人差し指（人）">
+                  <div class="fingerTip" id="tip-人"></div>
+                  <div class="fingerLabel">人</div>
+                </button>
+                <button class="finger" data-f="中" title="中指（中）">
+                  <div class="fingerTip" id="tip-中"></div>
+                  <div class="fingerLabel">中</div>
+                </button>
+                <button class="finger" data-f="薬" title="薬指（薬）">
+                  <div class="fingerTip" id="tip-薬"></div>
+                  <div class="fingerLabel">薬</div>
+                </button>
+                <button class="finger" data-f="小" title="小指（小）">
+                  <div class="fingerTip" id="tip-小"></div>
+                  <div class="fingerLabel">小</div>
+                </button>
               </div>
+
+              <div class="handLegend">
+                <span class="legendChip">人</span><span>＝人差し指</span>
+                <span class="legendDot">•</span>
+                <span class="legendChip">中</span><span>＝中指</span>
+                <span class="legendDot">•</span>
+                <span class="legendChip">薬</span><span>＝薬指</span>
+                <span class="legendDot">•</span>
+                <span class="legendChip">小</span><span>＝小指</span>
+              </div>
+
+              <div class="handHint2">指に触る／フレットの<span class="legendChip">人</span><span class="legendChip">中</span><span class="legendChip">薬</span><span class="legendChip">小</span>をタップすると指先が光ります</div>
             </div>
           </div>
 
           <div class="boardHeader__right">
-            <button class="chip" id="toggleOverlayBtn">表示：うっすら</button>
+            <button class="chip" id="toggleOverlayBtn">濃さ：中</button>
+            <button class="chip" id="toggleWobbleBtn">揺れ：強</button>
           </div>
         </div>
 
-        <div class="fretboardWrap soft" id="fretboardWrap">
+        <div class="fretboardWrap soft" id="fretWrap">
           <div class="fretboard" id="fretboard" aria-label="Fretboard"></div>
         </div>
 
         <div class="boardNote">
-          ※ 静的モックです（判定はまだ）／ “●” は押さえる場所、 “○” は開放弦です
+          ※ 静的モックです（判定はまだ）／ “○”は開放、 “人/中/薬/小” は押さえる指（タップで発光）
         </div>
       </section>
 
@@ -71,10 +96,9 @@
 
         <div class="smallControls">
           <button class="chip" id="phaseBtn">フェーズ切替</button>
-          <button class="chip" id="toggleWobbleBtn">背景：ふわふわ 強</button>
-          <button class="chip" id="bgToneBtn">背景文字：濃く</button>
           <button class="chip" id="demoOkBtn">演出デモ：OK!!</button>
           <button class="chip chip--danger" id="demoNgBtn">演出デモ：MISS!</button>
+          <button class="chip" id="clearHoverBtn">発光リセット</button>
         </div>
       </section>
 
@@ -87,7 +111,7 @@
 
     <footer class="bottombar">
       <div class="bottombar__hint">
-        iPhone縦画面想定 / アメコミ風UI（静的モック）
+        iPhone縦画面想定 / 背景も将来アメコミ化（ハーフトーン＋スピードライン）
       </div>
     </footer>
   </div>

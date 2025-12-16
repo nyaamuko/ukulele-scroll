@@ -1,36 +1,49 @@
-// app.js (v2)
+// app.js (v3)
+// 目的：左手の指先発光を “リアルタイム” にする
+// - コードが切り替わったら「使う指」を自動発光
+// - フレット上のマーカー（人/中/薬/小）を “触る/ホバー/タップ” すると、その指が即発光
+// - 左手の指（人/中/薬/小）をタップしても発光（練習用）
+// - 発光リセットで「コードが要求する指」に戻す
+
 let state = {
   items: [],
   idx: 0,
   phaseIdx: 0,
-  overlayStrong: false,
-  wobbleLevel: 2, // 1..3
-  toneLevel: 1,   // 1..3
+  overlayLevel: 1, // 0=soft,1=mid,2=strong
+  wobbleLevel: 2,  // 0=off,1=mid,2=strong
+  // realtime highlight
+  lockFinger: null, // "人"|"中"|"薬"|"小"|null
+  chordFingers: new Set(), // current chord used fingers
 };
 
 const bgCode = document.getElementById("bgCode");
 const codeLabel = document.getElementById("codeLabel");
 const fretboard = document.getElementById("fretboard");
-const fretboardWrap = document.getElementById("fretboardWrap");
 const timerValue = document.getElementById("timerValue");
 const debug = document.getElementById("debug");
+const fretWrap = document.getElementById("fretWrap");
 
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const phaseBtn = document.getElementById("phaseBtn");
 const toggleOverlayBtn = document.getElementById("toggleOverlayBtn");
 const toggleWobbleBtn = document.getElementById("toggleWobbleBtn");
-const bgToneBtn = document.getElementById("bgToneBtn");
 const demoOkBtn = document.getElementById("demoOkBtn");
 const demoNgBtn = document.getElementById("demoNgBtn");
+const clearHoverBtn = document.getElementById("clearHoverBtn");
 
 const phaseTitle = document.getElementById("phaseTitle");
 const phaseText = document.getElementById("phaseText");
 
-const fingerDots = document.getElementById("fingerDots");
-
 const burst = document.getElementById("burst");
 const burstText = document.getElementById("burstText");
+
+const tipEls = {
+  "人": document.getElementById("tip-人"),
+  "中": document.getElementById("tip-中"),
+  "薬": document.getElementById("tip-薬"),
+  "小": document.getElementById("tip-小"),
+};
 
 const PHASES = [
   { title: "READY!", text: "このコードを構えてね", seconds: 1.6 },
@@ -47,27 +60,16 @@ function renderPhase(){
   timerValue.textContent = ph.seconds.toFixed(1);
 }
 
-function applyOverlayOpacity(){
-  fretboardWrap.classList.toggle("strong", state.overlayStrong);
-  fretboardWrap.classList.toggle("soft", !state.overlayStrong);
-  toggleOverlayBtn.textContent = state.overlayStrong ? "表示：濃い" : "表示：うっすら";
+function applyOverlay(){
+  fretWrap.classList.remove("soft","mid","strong");
+  fretWrap.classList.add(["soft","mid","strong"][state.overlayLevel]);
+  toggleOverlayBtn.textContent = ["濃さ：薄","濃さ：中","濃さ：濃"][state.overlayLevel];
 }
 
 function applyWobble(){
-  bgCode.classList.remove("wobble1","wobble2","wobble3");
-  bgCode.classList.add(`wobble${state.wobbleLevel}`);
-  toggleWobbleBtn.textContent = state.wobbleLevel === 1 ? "背景：ふわふわ 弱"
-                         : state.wobbleLevel === 2 ? "背景：ふわふわ 強"
-                         : "背景：ふわふわ 激";
-}
-
-function applyTone(){
-  bgCode.classList.remove("tone2","tone3");
-  if (state.toneLevel === 2) bgCode.classList.add("tone2");
-  if (state.toneLevel === 3) bgCode.classList.add("tone3");
-  bgToneBtn.textContent = state.toneLevel === 1 ? "背景文字：濃く"
-                  : state.toneLevel === 2 ? "背景文字：もっと濃く"
-                  : "背景文字：標準";
+  bgCode.classList.remove("wobbleOff","wobbleMid","wobbleStrong");
+  bgCode.classList.add(["wobbleOff","wobbleMid","wobbleStrong"][state.wobbleLevel]);
+  toggleWobbleBtn.textContent = ["揺れ：OFF","揺れ：中","揺れ：強"][state.wobbleLevel];
 }
 
 function buildFretNums(maxFret){
@@ -77,7 +79,6 @@ function buildFretNums(maxFret){
   const nums = document.createElement("div");
   nums.className = "fretNums";
   nums.style.gridTemplateColumns = `repeat(${maxFret}, 1fr)`;
-
   for (let f=1; f<=maxFret; f++){
     const d = document.createElement("div");
     d.className = "fretNum";
@@ -87,105 +88,114 @@ function buildFretNums(maxFret){
   fretboard.appendChild(nums);
 }
 
-function laneCell(kind, html){
-  const cell = document.createElement("div");
-  if (kind === "tag"){
-    cell.className = "stringTag";
-    cell.innerHTML = html;
-  } else {
-    cell.className = "lane";
-  }
-  return cell;
-}
-
-function marker(type, label){
+function marker(type, label, finger){
   const m = document.createElement("div");
   m.className = "marker";
   if (type === "open") {
     m.classList.add("open");
     m.textContent = "○";
-  } else if (type === "on") {
+    m.dataset.finger = "";
+  } else {
     m.classList.add("on");
-    m.textContent = label ? label : "●";
+    m.textContent = label || "●";
+    m.dataset.finger = finger || "";
+    m.setAttribute("role","button");
+    m.setAttribute("tabindex","0");
+    m.title = `指：${finger}`;
   }
   return m;
 }
 
-function ensureFingerDots(){
-  fingerDots.innerHTML = "";
-  for (let i=1; i<=4; i++){
-    const d = document.createElement("div");
-    d.className = "fingerDot";
-    d.textContent = String(i);
-    d.dataset.finger = String(i);
-    fingerDots.appendChild(d);
+function setFingerGlow(activeSet){
+  Object.entries(tipEls).forEach(([k, el]) => {
+    if (!el) return;
+    el.classList.toggle("on", activeSet.has(k));
+  });
+}
+
+function getUsedFingers(arr){
+  const s = new Set();
+  for (const x of (arr || [])){
+    if (x) s.add(x);
+  }
+  return s;
+}
+
+function applyCurrentGlow(){
+  // lockFinger has priority
+  if (state.lockFinger){
+    setFingerGlow(new Set([state.lockFinger]));
+  } else {
+    setFingerGlow(state.chordFingers);
   }
 }
 
-function updateFingerDots(item){
-  const used = new Set();
-  (item.fingers || []).forEach(v => {
-    const s = (v ?? "").toString().trim();
-    if (["1","2","3","4"].includes(s)) used.add(s);
-  });
+function addStringLines(){
+  fretboard.querySelectorAll(".stringLine").forEach(n => n.remove());
 
-  fingerDots.querySelectorAll(".fingerDot").forEach(el => {
-    const f = el.dataset.finger;
-    el.classList.toggle("on", used.has(f));
+  const rowH = 56;
+  const gap = 10;
+  for (let r=0; r<4; r++){
+    const y = r*(rowH+gap) + rowH/2;
+    const line = document.createElement("div");
+    line.className = "stringLine";
+    line.style.top = `${y}px`;
+    fretboard.appendChild(line);
+  }
+}
+
+// highlight markers belonging to a finger (visual)
+function setMarkerGlow(finger){
+  fretboard.querySelectorAll(".marker.on").forEach(m => {
+    const f = m.dataset.finger || "";
+    m.classList.toggle("glow", finger && f === finger);
   });
 }
 
-function addRowLine(rowIndex){
-  const line = document.createElement("div");
-  line.className = "rowLine";
-  const top = (rowIndex * (56 + 10)) + 28; // row center
-  line.style.top = `${top}px`;
-  fretboard.appendChild(line);
+function clearMarkerGlow(){
+  fretboard.querySelectorAll(".marker.on").forEach(m => m.classList.remove("glow"));
 }
 
 function renderFretboard(item){
   const maxFret = item.maxFret ?? 5;
 
-  fretboard.style.gridTemplateColumns = `46px repeat(${maxFret}, 1fr)`;
+  fretboard.style.gridTemplateColumns = `50px repeat(${maxFret}, 1fr)`;
   fretboard.style.gridTemplateRows = `repeat(4, 56px)`;
   fretboard.innerHTML = "";
 
   buildFretNums(maxFret);
 
-  for (let r=0; r<4; r++) addRowLine(r);
-
-  const strings = item.strings; // 1弦→4弦（上から）
+  const strings = item.strings; // 1弦→4弦
   const frets = item.frets;
   const fingers = item.fingers || ["","","",""];
 
+  state.chordFingers = getUsedFingers(fingers);
+  state.lockFinger = null; // chord change resets lock
+  applyCurrentGlow();
+
   for (let r=0; r<4; r++){
     const s = strings[r];
-    const tagHtml = `${(s.name||"")}<small>${(s.note||"")}</small>`;
-    fretboard.appendChild(laneCell("tag", tagHtml));
+    const tag = document.createElement("div");
+    tag.className = "stringTag";
+    tag.innerHTML = `${s.name}<small>${s.note}</small>`;
+    fretboard.appendChild(tag);
 
     for (let f=1; f<=maxFret; f++){
-      const lane = laneCell("lane", "");
-      const fretNum = frets[r] ?? 0;
+      const slot = document.createElement("div");
+      slot.className = "slot";
 
-      if (fretNum === 0 && f === 1){
-        lane.appendChild(marker("open", ""));
-      }
-      if (fretNum === f){
-        lane.appendChild(marker("on", fingers[r] || "●"));
-      }
-      fretboard.appendChild(lane);
+      const fretNum = frets[r] ?? 0;
+      const fingerLabel = fingers[r] || "";
+
+      if (fretNum === 0 && f === 1) slot.appendChild(marker("open","",""));
+      if (fretNum === f) slot.appendChild(marker("on", fingerLabel || "●", fingerLabel));
+
+      fretboard.appendChild(slot);
     }
   }
-}
 
-function showBurst(text, isMiss=false){
-  burstText.textContent = text;
-  burst.hidden = false;
-  burst.classList.toggle("miss", !!isMiss);
-  window.clearTimeout(showBurst._t);
-  showBurst._t = window.setTimeout(() => {
-    burst.hidden = true;
-  }, 900);
+  addStringLines();
+  clearMarkerGlow();
 }
 
 function render(){
@@ -195,23 +205,49 @@ function render(){
     setDebug("ERROR: notes.json が読み込めません");
     return;
   }
-  const item = state.items[state.idx];
 
+  const item = state.items[state.idx];
   bgCode.textContent = item.code;
   codeLabel.textContent = item.code;
 
   renderFretboard(item);
-  updateFingerDots(item);
-
   renderPhase();
-  applyOverlayOpacity();
+  applyOverlay();
   applyWobble();
-  applyTone();
 
   setDebug(`OK: notes.json 読込 / CODE=${item.code} / idx=${state.idx+1}/${state.items.length}`);
 }
 
-// Events
+function showBurst(text, isMiss=false){
+  burstText.textContent = text;
+  burst.hidden = false;
+  burst.classList.toggle("miss", !!isMiss);
+
+  window.clearTimeout(showBurst._t);
+  showBurst._t = window.setTimeout(() => { burst.hidden = true; }, 950);
+}
+
+function setRealtimeFinger(finger, lock=false){
+  if (!finger) return;
+  if (lock){
+    state.lockFinger = (state.lockFinger === finger) ? null : finger;
+  } else {
+    // temporary highlight while hovering/touching (only if not locked)
+    if (state.lockFinger) return;
+    state.lockFinger = finger;
+    // but don't keep it: this is for "touchstart" w/out lock? We'll clear on pointerup/cancel
+  }
+  applyCurrentGlow();
+  setMarkerGlow(state.lockFinger || "");
+}
+
+function resetRealtime(){
+  state.lockFinger = null;
+  applyCurrentGlow();
+  clearMarkerGlow();
+}
+
+// ---- Events
 prevBtn.addEventListener("click", () => {
   state.idx = (state.idx - 1 + state.items.length) % state.items.length;
   render();
@@ -225,22 +261,86 @@ phaseBtn.addEventListener("click", () => {
   renderPhase();
 });
 toggleOverlayBtn.addEventListener("click", () => {
-  state.overlayStrong = !state.overlayStrong;
-  applyOverlayOpacity();
+  state.overlayLevel = (state.overlayLevel + 1) % 3;
+  applyOverlay();
 });
 toggleWobbleBtn.addEventListener("click", () => {
-  state.wobbleLevel = (state.wobbleLevel % 3) + 1;
+  state.wobbleLevel = (state.wobbleLevel + 1) % 3;
   applyWobble();
-});
-bgToneBtn.addEventListener("click", () => {
-  state.toneLevel = (state.toneLevel % 3) + 1;
-  applyTone();
 });
 demoOkBtn.addEventListener("click", () => showBurst("OK!!", false));
 demoNgBtn.addEventListener("click", () => showBurst("MISS!", true));
+clearHoverBtn.addEventListener("click", () => resetRealtime());
 
+// Left hand buttons = lock toggle
+document.querySelectorAll(".finger").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const f = btn.dataset.f || "";
+    if (!f) return;
+    // lock/unlock
+    state.lockFinger = (state.lockFinger === f) ? null : f;
+    applyCurrentGlow();
+    setMarkerGlow(state.lockFinger || "");
+    if (!state.lockFinger) clearMarkerGlow();
+  });
+});
+
+// Fretboard marker interactions
+fretboard.addEventListener("pointerover", (e) => {
+  const m = e.target.closest(".marker.on");
+  if (!m) return;
+  const f = m.dataset.finger || "";
+  if (!f) return;
+  if (state.lockFinger) return;
+  state.lockFinger = f;
+  applyCurrentGlow();
+  setMarkerGlow(f);
+});
+fretboard.addEventListener("pointerout", (e) => {
+  const m = e.target.closest(".marker.on");
+  if (!m) return;
+  if (state.lockFinger) {
+    // if locked by finger buttons or click, don't clear on out
+    // We can't perfectly distinguish; use heuristic: if any finger button is "locked", keep.
+    // We'll treat lock only when marker click toggles; for hover we set lockFinger but clear here.
+    // So clear only if the out came from hover-mode: we clear always when pointerout and no marker click happened.
+  }
+  // Clear to chord fingers unless user has locked via finger buttons (handled above) -> lockFinger will not be null in that case.
+  // For hover-mode we always clear.
+  state.lockFinger = null;
+  applyCurrentGlow();
+  clearMarkerGlow();
+});
+
+// Tap/click a marker -> lock toggle to that finger
+fretboard.addEventListener("click", (e) => {
+  const m = e.target.closest(".marker.on");
+  if (!m) return;
+  const f = m.dataset.finger || "";
+  if (!f) return;
+  // toggle lock finger
+  state.lockFinger = (state.lockFinger === f) ? null : f;
+  applyCurrentGlow();
+  setMarkerGlow(state.lockFinger || "");
+  if (!state.lockFinger) clearMarkerGlow();
+});
+
+// Keyboard (enter/space) on focused marker
+fretboard.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const m = e.target.closest(".marker.on");
+  if (!m) return;
+  const f = m.dataset.finger || "";
+  if (!f) return;
+  e.preventDefault();
+  state.lockFinger = (state.lockFinger === f) ? null : f;
+  applyCurrentGlow();
+  setMarkerGlow(state.lockFinger || "");
+  if (!state.lockFinger) clearMarkerGlow();
+});
+
+// Load notes.json
 async function init(){
-  ensureFingerDots();
   try{
     setDebug("loading notes.json…");
     const res = await fetch("./notes.json", { cache: "no-store" });
