@@ -45,7 +45,7 @@ const PHASES = [
   { title: "PLAY!",  text: "時間内に鳴らして！",   seconds: 4.0 }
 ];
 
-function setDebug(msg){ debug.textContent = msg; }
+function setDebug(msg){ if (debug) debug.textContent = msg; }
 
 function renderPhase(){
   const ph = PHASES[state.phaseIdx];

@@ -33,7 +33,7 @@ body{
   height: 100dvh;
   max-height: 920px;
   padding-top: var(--safeTop);
-  padding-bottom: var(--safeBottom);
+  padding-bottom: 0;
   display:flex;
   flex-direction:column;
   border-radius: 26px;
@@ -85,7 +85,7 @@ body{
 .stage2{
   position:relative;
   flex:1;
-  padding: 12px 12px 6px;
+  padding: 10px 10px 4px;
   display:flex;
   flex-direction:column;
   gap: 10px;
@@ -426,20 +426,44 @@ body{
 .comicBurst.miss .comicBurst__text{ color:#13060a; }
 
 .bottombar{
-  padding: 8px 12px calc(8px + var(--safeBottom));
+  padding: 6px 10px calc(6px + var(--safeBottom));
 border-top: 1px solid var(--line);
   background: rgba(0,0,0,0.25);
   backdrop-filter: blur(10px);
 }
 .bottombar__hint{ text-align:center; color: var(--muted); font-size: 11px; font-weight: 800; }
 
-.debug{
-  margin-top: 6px;
-  font-size: 10px;
-  color: rgba(255,255,255,0.72);
-  padding: 7px 9px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.22);
-  backdrop-filter: blur(8px);
+
+
+/* v7: iPhoneで下部が切れないように全体を更に圧縮 */
+.boardCard{ flex: 1 1 auto; }
+.fretboard{
+  grid-template-rows: repeat(4, clamp(40px, 5.3vh, 48px));
+}
+.slot{ height: clamp(30px, 4.2vh, 34px); }
+.handIllust{ height: 56px; }
+.bgCode{ font-size: 132px; }
+
+/* 下のボタン列を横スクロールにして縦の高さを節約 */
+.smallControls{
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.smallControls::-webkit-scrollbar{ display:none; }
+.smallControls .chip{ flex: 0 0 auto; padding: 7px 10px; font-size: 12px; }
+
+/* 文字や余白を少しだけ圧縮 */
+.speech{ padding: 9px 10px 8px; }
+.speech__title{ font-size: 16px; }
+.speech__text{ font-size: 12px; }
+.btn{ padding: 9px 10px; font-size: 14px; border-radius: 13px; }
+
+/* さらに小さい端末向け */
+@media (max-height: 730px){
+  .bgCode{ font-size: 118px; top: 28%; }
+  .boardHeader{ grid-template-columns: 1fr 122px auto; }
+  .handIllust{ width: 122px; }
+  .btn{ padding: 8px 9px; font-size: 13px; }
+  .chip{ padding: 8px 9px; font-size: 11px; }
 }
