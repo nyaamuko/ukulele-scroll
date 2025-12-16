@@ -226,7 +226,7 @@ function setTestMode(on){
   testMode = !!on;
   if(btnTest){
     btnTest.classList.toggle("on", testMode);
-    btnTest.textContent = testMode ? "TEST（ON）" : "TEST（なんでもOK）";
+    btnTest.textContent = testMode ? "TEST（ON：クリックで次へ）" : "TEST（なんでもOK）";
   }
   if(testMode){
     showComic("TEST!", "楽器なしモード：どんな音でもOK");
@@ -261,6 +261,42 @@ function resetTuning(){
   tuningCleared = false;
   tuneStep = 0;
   for(let i=0;i<tunedSteps.length;i++) tunedSteps[i] = false;
+}
+
+
+// TEST用：クリックでSTAGE1（チューニング4音）を強制クリアして進める（楽器なしでも確認できる）
+function forceStage1Pass(){
+  if(stage !== STAGE.TUNING) return;
+
+  // まだ完了していないステップを「即クリア」
+  tunedSteps[tuneStep] = true;
+
+  const cur = TUNING_TARGETS[tuneStep];
+  showComic("OK!", `${cur.string} ${cur.name}（${cur.jp}） クリア！`);
+  beep(980, 90, "triangle", 0.05);
+
+  tuneHoldMs = 0;
+
+  if(tuneStep < TUNING_TARGETS.length - 1){
+    tuneStep++;
+    const nxt = TUNING_TARGETS[tuneStep];
+    setTimeout(() => {
+      showComic("NEXT", `${nxt.string} ${nxt.name}（${nxt.jp}）を鳴らそう`);
+    }, 220);
+  }else{
+    tuningCleared = true;
+    setTimeout(() => {
+      showComic("BAM!", "4音チューニング完了！次はゲームだ！");
+      beep(1040, 120, "triangle", 0.06);
+    }, 220);
+
+    setTimeout(() => {
+      if(!running) return;
+      stage = STAGE.GAME;
+      startTs = performance.now();
+      setStatus("STAGE 2：中心で鳴らしてコンボを繋ぐ！");
+    }, 900);
+  }
 }
 
 function freqToCents(freq, targetHz){
@@ -900,8 +936,20 @@ function setTestMode(on){
 }
 
 btnTest.addEventListener("click", () => {
-  setTestMode(!testMode);
+  if(!testMode){
+    setTestMode(true);
+    return;
+  }
+  // TEST ON中：STAGE1なら「クリックで次へ進む」（楽器なしでも確認可能）
+  if(stage === STAGE.TUNING){
+    forceStage1Pass();
+    return;
+  }
+  // STAGE2以降では誤操作防止のため、クリックでOFFに戻す
+  setTestMode(false);
 });
+// TEST OFFにしたい時用：ダブルクリックでOFF
+btnTest.addEventListener("dblclick", () => setTestMode(false));
 btnStart.addEventListener("click", () => {
   if(audioCtx) audioCtx.resume().catch(()=>{});
   if(!chartLoaded){ setStatus("先にパターン読み込み"); return; }
