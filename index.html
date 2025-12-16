@@ -24,25 +24,33 @@
     </header>
 
     <main class="stage2">
-      <!-- 背景のふわふわコード文字 -->
-      <div class="bgCode wobble" id="bgCode">--</div>
+      <div class="comicBg" aria-hidden="true"></div>
+      <div class="bgCode wobble2" id="bgCode">--</div>
 
-      <!-- フレットボード（うっすら） -->
       <section class="boardCard">
         <div class="boardHeader">
           <div class="boardHeader__left">
             <div class="boardHint">押さえる位置（フレット）</div>
             <div class="boardTitle"><span id="codeLabel">--</span></div>
           </div>
+
+          <div class="boardHeader__mid">
+            <div class="leftHand">
+              <div class="leftHand__label">左手</div>
+              <div class="handRow">
+                <div class="handIcon" aria-hidden="true">🖐️</div>
+                <div class="fingerDots" id="fingerDots"></div>
+              </div>
+            </div>
+          </div>
+
           <div class="boardHeader__right">
             <button class="chip" id="toggleOverlayBtn">表示：うっすら</button>
           </div>
         </div>
 
-        <div class="fretboardWrap">
-          <div class="fretboard" id="fretboard" aria-label="Fretboard">
-            <!-- JSで生成 -->
-          </div>
+        <div class="fretboardWrap soft" id="fretboardWrap">
+          <div class="fretboard" id="fretboard" aria-label="Fretboard"></div>
         </div>
 
         <div class="boardNote">
@@ -50,7 +58,6 @@
         </div>
       </section>
 
-      <!-- 指示（アメコミ吹き出し） -->
       <section class="prompt">
         <div class="speech">
           <div class="speech__title" id="phaseTitle">READY!</div>
@@ -64,13 +71,13 @@
 
         <div class="smallControls">
           <button class="chip" id="phaseBtn">フェーズ切替</button>
-          <button class="chip" id="toggleWobbleBtn">背景：ふわふわ ON/OFF</button>
+          <button class="chip" id="toggleWobbleBtn">背景：ふわふわ 強</button>
+          <button class="chip" id="bgToneBtn">背景文字：濃く</button>
           <button class="chip" id="demoOkBtn">演出デモ：OK!!</button>
           <button class="chip chip--danger" id="demoNgBtn">演出デモ：MISS!</button>
         </div>
       </section>
 
-      <!-- 演出（アメコミ） -->
       <div class="comicBurst" id="burst" hidden>
         <div class="comicBurst__text" id="burstText">OK!!</div>
       </div>

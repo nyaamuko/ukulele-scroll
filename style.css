@@ -1,22 +1,15 @@
 :root{
   --bg: #0b0f1a;
-  --panel: rgba(255,255,255,0.06);
-  --panel2: rgba(255,255,255,0.10);
-  --line: rgba(255,255,255,0.12);
   --text: #f5f7ff;
   --muted: rgba(245,247,255,0.7);
+  --line: rgba(255,255,255,0.12);
   --accent: #ffef5a;
   --accent2: #7cf7ff;
   --danger: #ff4d6d;
-
   --shadow: 0 10px 30px rgba(0,0,0,0.35);
-  --radius: 18px;
-  --radius2: 24px;
-
   --safeTop: env(safe-area-inset-top);
   --safeBottom: env(safe-area-inset-bottom);
 }
-
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
@@ -28,10 +21,10 @@ body{
   align-items:center;
   justify-content:center;
 }
-
 .phone{
   width: min(430px, 100vw);
-  height: min(900px, 100vh);
+  height: 100dvh;
+  max-height: 900px;
   padding-top: var(--safeTop);
   padding-bottom: var(--safeBottom);
   display:flex;
@@ -42,12 +35,9 @@ body{
   border: 1px solid rgba(255,255,255,0.10);
   background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
 }
-
 /* Topbar */
 .topbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
+  display:flex; justify-content:space-between; align-items:flex-start;
   padding: 14px 14px 10px;
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(10px);
@@ -55,25 +45,18 @@ body{
 }
 .topbar__left{ display:flex; flex-direction:column; gap:6px; }
 .badge{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding: 7px 10px;
-  border-radius: 999px;
+  display:inline-flex; align-items:center; justify-content:center;
+  padding: 7px 10px; border-radius: 999px;
   background: rgba(255,239,90,0.18);
   border: 1px solid rgba(255,239,90,0.35);
   color: var(--accent);
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  font-size: 12px;
+  font-weight: 900; letter-spacing: 0.5px; font-size: 12px;
 }
 .subtitle{ font-weight: 900; font-size: 18px; }
 .topbar__right{ padding-top: 2px; }
-
 .timer{
   display:flex; gap:6px; align-items:baseline;
-  padding: 8px 10px;
-  border-radius: 999px;
+  padding: 8px 10px; border-radius: 999px;
   background: rgba(124,247,255,0.12);
   border: 1px solid rgba(124,247,255,0.25);
   color: var(--accent2);
@@ -92,10 +75,26 @@ body{
   display:flex;
   flex-direction:column;
   gap: 14px;
-  overflow:hidden;
+  overflow:auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(90px + var(--safeBottom));
 }
 
-/* ふわふわ背景文字 */
+/* Comic background (土台) */
+.comicBg{
+  position:absolute;
+  inset:-40px;
+  pointer-events:none;
+  opacity: 0.45;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255,239,90,0.18), transparent 45%),
+    radial-gradient(circle at 80% 30%, rgba(124,247,255,0.14), transparent 45%),
+    radial-gradient(circle at 50% 75%, rgba(255,77,109,0.12), transparent 48%),
+    repeating-radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08) 0 1px, transparent 1px 7px);
+  filter: blur(0.2px);
+}
+
+/* Background code */
 .bgCode{
   position:absolute;
   left:50%;
@@ -104,20 +103,36 @@ body{
   font-size: 180px;
   font-weight: 1000;
   letter-spacing: 3px;
-  opacity: 0.16;
+  opacity: 0.22;
   color: #ffffff;
-  filter: blur(0.9px);
+  filter: blur(0.6px);
   text-shadow:
-    0 0 24px rgba(255,255,255,0.18),
-    0 0 70px rgba(124,247,255,0.10);
+    0 0 24px rgba(255,255,255,0.22),
+    0 0 70px rgba(124,247,255,0.14);
   pointer-events:none;
   user-select:none;
 }
-.bgCode.wobble{ animation: wobble 3.8s ease-in-out infinite; }
-@keyframes wobble{
-  0%   { transform: translate(-50%,-50%) rotate(-1deg) translateY(-4px); }
-  50%  { transform: translate(-50%,-50%) rotate( 1deg) translateY( 6px); }
-  100% { transform: translate(-50%,-50%) rotate(-1deg) translateY(-4px); }
+.bgCode.tone2{ opacity: 0.32; }
+.bgCode.tone3{ opacity: 0.42; }
+.bgCode.wobble1{ animation: wobble1 4.2s ease-in-out infinite; }
+.bgCode.wobble2{ animation: wobble2 2.8s ease-in-out infinite; }
+.bgCode.wobble3{ animation: wobble3 1.7s ease-in-out infinite; }
+@keyframes wobble1{
+  0%{ transform: translate(-50%,-50%) rotate(-1deg) translateY(-4px) translateX(-2px); }
+  50%{ transform: translate(-50%,-50%) rotate(1deg) translateY(6px) translateX(2px); }
+  100%{ transform: translate(-50%,-50%) rotate(-1deg) translateY(-4px) translateX(-2px); }
+}
+@keyframes wobble2{
+  0%{ transform: translate(-50%,-50%) rotate(-2deg) translateY(-10px) translateX(-6px); }
+  40%{ transform: translate(-50%,-50%) rotate(2deg) translateY(10px) translateX(6px); }
+  70%{ transform: translate(-50%,-50%) rotate(-1deg) translateY(4px) translateX(-4px); }
+  100%{ transform: translate(-50%,-50%) rotate(-2deg) translateY(-10px) translateX(-6px); }
+}
+@keyframes wobble3{
+  0%{ transform: translate(-50%,-50%) rotate(-4deg) translateY(-14px) translateX(-10px); }
+  30%{ transform: translate(-50%,-50%) rotate(4deg) translateY(14px) translateX(10px); }
+  55%{ transform: translate(-50%,-50%) rotate(-3deg) translateY(8px) translateX(-8px); }
+  100%{ transform: translate(-50%,-50%) rotate(-4deg) translateY(-14px) translateX(-10px); }
 }
 
 /* Card */
@@ -125,14 +140,16 @@ body{
   position:relative;
   margin-top: 6px;
   padding: 14px 14px 12px;
-  border-radius: var(--radius2);
+  border-radius: 24px;
   border: 1px solid rgba(255,255,255,0.10);
   background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
   backdrop-filter: blur(10px);
 }
 .boardHeader{
-  display:flex; align-items:center; justify-content:space-between;
+  display:grid;
+  grid-template-columns: 1fr 1.2fr auto;
   gap: 10px;
+  align-items:center;
   margin-bottom: 10px;
 }
 .boardHint{ font-size: 12px; color: var(--muted); font-weight: 800; }
@@ -141,6 +158,34 @@ body{
   color: var(--accent);
   letter-spacing: 1px;
   margin-top: 2px;
+}
+
+/* Left hand panel */
+.leftHand{
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.18);
+  padding: 8px 10px;
+}
+.leftHand__label{
+  font-size: 11px; color: var(--muted); font-weight: 900; margin-bottom: 6px;
+}
+.handRow{ display:flex; align-items:center; gap:10px; }
+.handIcon{ font-size: 18px; opacity: 0.9; }
+.fingerDots{ display:flex; gap:6px; }
+.fingerDot{
+  width: 26px; height: 26px; border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.78);
+  display:flex; align-items:center; justify-content:center;
+  font-weight: 1000; font-size: 12px;
+}
+.fingerDot.on{
+  border-color: rgba(255,239,90,0.55);
+  background: rgba(255,239,90,0.22);
+  color: var(--accent);
+  box-shadow: 0 0 0 6px rgba(255,239,90,0.10);
 }
 
 /* Chips */
@@ -154,6 +199,7 @@ body{
   font-weight: 900;
   font-size: 12px;
   cursor:pointer;
+  white-space: nowrap;
 }
 .chip--danger{
   background: rgba(255,77,109,0.16);
@@ -165,25 +211,32 @@ body{
   border-radius: 18px;
   background: rgba(0,0,0,0.18);
   border: 1px solid rgba(255,255,255,0.08);
-  padding: 12px 10px;
+  padding: 14px 10px 12px;
+  transition: opacity 180ms ease;
 }
-
-/* opacity control (うっすら/濃い) */
-.fretboardWrap.soft{ opacity: 0.38; }
-.fretboardWrap.strong{ opacity: 0.82; }
-.fretboardWrap{ transition: opacity 180ms ease; }
-
-/* grid: columns = nut + frets */
+.fretboardWrap.soft{ opacity: 0.42; }
+.fretboardWrap.strong{ opacity: 0.88; }
 .fretboard{
   position:relative;
   display:grid;
-  grid-template-columns: 46px repeat(5, 1fr); /* 0=開放表示 + fret1..5 */
-  grid-template-rows: repeat(4, 56px);        /* 4 strings */
+  grid-template-columns: 46px repeat(5, 1fr);
+  grid-template-rows: repeat(4, 56px);
   gap: 10px 10px;
   align-items:center;
 }
-
-/* String labels (left column) */
+.fretNums{
+  position:absolute;
+  left: 46px;
+  right: 0;
+  top: -6px;
+  display:grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  pointer-events:none;
+  user-select:none;
+  opacity: 0.80;
+}
+.fretNum{ text-align:center; font-size: 11px; color: rgba(255,255,255,0.75); font-weight: 900; }
 .stringTag{
   font-weight: 1000;
   font-size: 12px;
@@ -193,8 +246,6 @@ body{
   gap:2px;
 }
 .stringTag small{ font-weight: 800; color: var(--muted); }
-
-/* Fret lanes background */
 .lane{
   position:relative;
   height: 40px;
@@ -203,97 +254,48 @@ body{
   background: rgba(255,255,255,0.04);
   overflow:hidden;
 }
-
-/* horizontal string line inside each lane */
-.lane::before{
-  content:"";
-  position:absolute;
-  left: 10px;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 2px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.38);
-}
-
-/* vertical fret divider hint (right edge) */
 .lane::after{
   content:"";
   position:absolute;
-  right: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 2px;
-  border-radius: 999px;
+  right: 0; top: 8px; bottom: 8px;
+  width: 2px; border-radius: 999px;
   background: rgba(255,255,255,0.12);
 }
-
-/* Open / finger markers */
+/* connected string line */
+.rowLine{
+  position:absolute;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.38);
+  left: 56px;
+  right: 10px;
+  pointer-events:none;
+  opacity: 0.95;
+}
 .marker{
   position:absolute;
-  left: 50%;
-  top: 50%;
+  left: 50%; top: 50%;
   transform: translate(-50%,-50%);
-  width: 30px;
-  height: 30px;
+  width: 30px; height: 30px;
   border-radius: 999px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight: 1000;
-  font-size: 12px;
+  display:flex; align-items:center; justify-content:center;
+  font-weight: 1000; font-size: 12px;
 }
-
-/* open circle */
 .marker.open{
   border: 2px dashed rgba(255,255,255,0.35);
   color: rgba(255,255,255,0.75);
   background: rgba(255,255,255,0.04);
 }
-
-/* finger dot */
 .marker.on{
   border: 2px solid rgba(255,239,90,0.55);
   color: var(--accent);
   background: rgba(255,239,90,0.22);
   box-shadow: 0 0 0 7px rgba(255,239,90,0.10);
 }
-
-/* Fret number header row (top of grid) - overlayed */
-.fretNums{
-  position:absolute;
-  left: 46px;
-  right: 0;
-  top: -4px;
-  display:grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  pointer-events:none;
-  user-select:none;
-  opacity: 0.75;
-}
-.fretNum{
-  text-align:center;
-  font-size: 11px;
-  color: rgba(255,255,255,0.72);
-  font-weight: 900;
-}
-
-/* Board note */
-.boardNote{
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--muted);
-}
+.boardNote{ margin-top: 10px; font-size: 12px; color: var(--muted); }
 
 /* Prompt */
-.prompt{
-  margin-top:auto;
-  display:flex;
-  flex-direction:column;
-  gap: 10px;
-}
+.prompt{ margin-top:auto; display:flex; flex-direction:column; gap: 10px; }
 .speech{
   position:relative;
   padding: 14px 14px 12px;
@@ -305,27 +307,15 @@ body{
 .speech:after{
   content:"";
   position:absolute;
-  left: 26px;
-  bottom: -10px;
-  width: 18px;
-  height: 18px;
+  left: 26px; bottom: -10px;
+  width: 18px; height: 18px;
   background: rgba(255,255,255,0.10);
   border-left: 2px solid rgba(255,255,255,0.20);
   border-bottom: 2px solid rgba(255,255,255,0.20);
   transform: rotate(45deg);
 }
-.speech__title{
-  font-size: 18px;
-  font-weight: 1000;
-  letter-spacing: 1px;
-}
-.speech__text{
-  margin-top: 6px;
-  font-size: 14px;
-  color: rgba(255,255,255,0.92);
-  font-weight: 800;
-}
-
+.speech__title{ font-size: 18px; font-weight: 1000; letter-spacing: 1px; }
+.speech__text{ margin-top: 6px; font-size: 14px; color: rgba(255,255,255,0.92); font-weight: 800; }
 .controls{ display:flex; gap:10px; }
 .btn{
   width:100%;
@@ -346,10 +336,9 @@ body{
   color: var(--text);
   border: 1px solid rgba(255,255,255,0.20);
 }
-
 .smallControls{ display:flex; flex-wrap:wrap; gap:8px; }
 
-/* Comic burst (成功・失敗演出の置き場) */
+/* Comic burst */
 .comicBurst{
   position:absolute;
   left: 50%;
@@ -378,26 +367,20 @@ body{
 }
 .comicBurst.miss .comicBurst__text{ color:#13060a; }
 
-/* Bottom bar */
+/* Footer */
 .bottombar{
   padding: 10px 14px;
   border-top: 1px solid var(--line);
   background: rgba(0,0,0,0.25);
   backdrop-filter: blur(10px);
 }
-.bottombar__hint{
-  text-align:center;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
+.bottombar__hint{ text-align:center; color: var(--muted); font-size: 12px; font-weight: 800; }
 
 /* Debug */
 .debug{
-  position:absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 74px;
+  position: sticky;
+  bottom: 10px;
+  margin-top: 6px;
   font-size: 11px;
   color: rgba(255,255,255,0.72);
   padding: 8px 10px;

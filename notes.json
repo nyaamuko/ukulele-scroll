@@ -5,33 +5,33 @@
       "maxFret": 5,
       "strings": [
         {
-          "name": "4弦",
-          "note": "G"
-        },
-        {
-          "name": "3弦",
-          "note": "C"
+          "name": "1弦",
+          "note": "A"
         },
         {
           "name": "2弦",
           "note": "E"
         },
         {
-          "name": "1弦",
-          "note": "A"
+          "name": "3弦",
+          "note": "C"
+        },
+        {
+          "name": "4弦",
+          "note": "G"
         }
       ],
       "frets": [
+        3,
         0,
         0,
-        0,
-        3
+        0
       ],
       "fingers": [
+        "3",
         "",
         "",
-        "",
-        "3"
+        ""
       ]
     },
     {
@@ -39,32 +39,32 @@
       "maxFret": 5,
       "strings": [
         {
-          "name": "4弦",
-          "note": "G"
-        },
-        {
-          "name": "3弦",
-          "note": "C"
+          "name": "1弦",
+          "note": "A"
         },
         {
           "name": "2弦",
           "note": "E"
         },
         {
-          "name": "1弦",
-          "note": "A"
+          "name": "3弦",
+          "note": "C"
+        },
+        {
+          "name": "4弦",
+          "note": "G"
         }
       ],
       "frets": [
         0,
-        0,
         2,
+        0,
         0
       ],
       "fingers": [
         "",
-        "",
         "2",
+        "",
         ""
       ]
     },
@@ -73,33 +73,33 @@
       "maxFret": 5,
       "strings": [
         {
-          "name": "4弦",
-          "note": "G"
-        },
-        {
-          "name": "3弦",
-          "note": "C"
+          "name": "1弦",
+          "note": "A"
         },
         {
           "name": "2弦",
           "note": "E"
         },
         {
-          "name": "1弦",
-          "note": "A"
+          "name": "3弦",
+          "note": "C"
+        },
+        {
+          "name": "4弦",
+          "note": "G"
         }
       ],
       "frets": [
-        2,
         0,
         1,
-        0
+        0,
+        2
       ],
       "fingers": [
-        "2",
         "",
         "1",
-        ""
+        "",
+        "2"
       ]
     },
     {
@@ -107,33 +107,33 @@
       "maxFret": 5,
       "strings": [
         {
-          "name": "4弦",
-          "note": "G"
-        },
-        {
-          "name": "3弦",
-          "note": "C"
+          "name": "1弦",
+          "note": "A"
         },
         {
           "name": "2弦",
           "note": "E"
         },
         {
-          "name": "1弦",
-          "note": "A"
+          "name": "3弦",
+          "note": "C"
+        },
+        {
+          "name": "4弦",
+          "note": "G"
         }
       ],
       "frets": [
-        0,
         2,
         3,
-        2
+        2,
+        0
       ],
       "fingers": [
-        "",
-        "1",
+        "2",
         "3",
-        "2"
+        "1",
+        ""
       ]
     }
   ]
