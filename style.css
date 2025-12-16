@@ -63,6 +63,14 @@ body{
   border-color: rgba(124,92,255,0.65);
   background: rgba(124,92,255,0.18);
 }
+.btn.test{
+  border-color: rgba(34,211,238,0.55);
+  background: rgba(34,211,238,0.12);
+}
+.btn.test.on{
+  border-color: rgba(44,255,154,0.70);
+  background: rgba(44,255,154,0.14);
+}
 .btn:disabled{ opacity:0.45; }
 
 .select{

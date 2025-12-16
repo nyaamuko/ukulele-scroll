@@ -9,6 +9,7 @@ const ctx = cv.getContext("2d");
 const btnLoad = document.getElementById("btnLoad");
 const btnMic  = document.getElementById("btnMic");
 const btnCal  = document.getElementById("btnCal");
+const btnTest = document.getElementById("btnTest");
 const btnStart= document.getElementById("btnStart");
 const btnStop = document.getElementById("btnStop");
 
@@ -217,6 +218,24 @@ function updateComic(){
 const STAGE = { TUNING: 1, GAME: 2 };
 let stage = STAGE.TUNING;
 
+// ===== Test Mode =====
+// 楽器がないとき用：STAGE1（チューニング）を「どんな音でもOK」にする
+let testMode = false;
+
+function setTestMode(on){
+  testMode = !!on;
+  if(btnTest){
+    btnTest.classList.toggle("on", testMode);
+    btnTest.textContent = testMode ? "TEST（ON）" : "TEST（なんでもOK）";
+  }
+  if(testMode){
+    showComic("TEST!", "楽器なしモード：どんな音でもOK");
+    setStatus("TEST ON：STAGE1はどんな音でもOK（声/口笛でも可）");
+  }else{
+    setStatus("TEST OFF：通常判定（音程でチェック）");
+  }
+}
+
 // ===== Tuning (pitch detect) =====
 const TUNING_TARGETS = [
   { name:"G", jp:"ソ", string:"4弦", freq:392.00 },
@@ -231,6 +250,9 @@ let lastTuneTs = 0;
 let tuningCleared = false;
 let tuneStep = 0; // 0..3
 const tunedSteps = [false,false,false,false];
+
+// TESTモード：楽器がない時用（どんな音でもOK）
+let testMode = false;
 
 
 function resetTuning(){
@@ -254,7 +276,9 @@ function nearestTarget(freq){
       best = { ...t, cents, abs };
     }
   }
-  
+  return best;
+}
+
 // 現在のチューニング課題（順番固定：4弦G→3弦C→2弦E→1弦A）
 function currentStepTarget(freq){
   const t = TUNING_TARGETS[tuneStep] || null;
@@ -262,9 +286,6 @@ function currentStepTarget(freq){
   const cents = freqToCents(freq, t.freq);
   const abs = Math.abs(cents);
   return { ...t, cents, abs };
-}
-
-return best;
 }
 
 // Autocorrelation pitch detection (simple)
@@ -618,7 +639,13 @@ function drawTuningUI(freq, target){
   ctx.fillStyle = "rgba(152,170,204,0.92)";
   ctx.font = `${12*dpr}px system-ui, -apple-system, sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText("G / C / E / A のどれかに近い音で判定します（合格するとゲーム開始）", cx, h - 22*dpr);
+  ctx.fillText(
+    testMode
+      ? "TESTモード：どんな音でもOK（声・口笛でもOK）"
+      : "G / C / E / A に近い音で判定します（合格するとゲーム開始）",
+    cx,
+    h - 22*dpr
+  );
   ctx.restore();
 }
 
@@ -716,10 +743,14 @@ function startRun(){
   running = true;
   startTs = performance.now(); // used in GAME stage; ignored in tuning
   lastHitTs = 0;
-  setStatus("開始：STAGE 1 チューニング（弦を1本鳴らして合わせる）");
+  setStatus(testMode
+    ? "開始：STAGE 1 チューニング（TEST：どんな音でもOK）"
+    : "開始：STAGE 1 チューニング（4弦G→3弦C→2弦E→1弦A）");
   btnStart.disabled = true;
   btnStop.disabled = false;
-  showComic("READY!", "まずはチューニング！G/C/E/AのどれでもOK");
+  showComic("READY!", testMode
+    ? "TEST中：声・口笛でもOK。4弦G→3弦C→2弦E→1弦Aの順で進むよ"
+    : "まずはチューニング！4弦G→3弦C→2弦E→1弦Aの順で進むよ");
   loop();
 }
 
@@ -743,9 +774,11 @@ function loop(ts){
   drawBackground();
 
   if(stage === STAGE.TUNING){
-    // pitch detect
-    const freq = detectPitchHz(dataTime, sampleRate);
-    const target = currentStepTarget(freq);
+    // pitch detect（TESTモード時はピッチ不要：どんな音でもOK）
+    const freq = testMode ? null : detectPitchHz(dataTime, sampleRate);
+    const target = testMode
+      ? null
+      : currentStepTarget(freq);
 
     // hold in tune
     const now = performance.now();
@@ -753,7 +786,10 @@ function loop(ts){
     const dt = now - lastTuneTs;
     lastTuneTs = now;
 
-    if(target && target.abs <= TUNE_TOL_CENTS){
+    // TESTモード：音量が少しでもあれば「合格方向」に進む
+    const testSound = testMode && (rms > Math.max(0.012, triggerRms * 0.55));
+
+    if((target && target.abs <= TUNE_TOL_CENTS) || testSound){
       tuneHoldMs += dt;
       // little positive feedback
       if(tuneHoldMs > 200 && Math.abs(tuneHoldMs % 400) < 30) beep(780, 35, "sine", 0.025);
@@ -761,7 +797,14 @@ function loop(ts){
       tuneHoldMs = Math.max(0, tuneHoldMs - dt*1.8);
     }
 
-    drawTuningUI(freq || 0, target);
+    // 表示：TESTモードなら、今の課題音に「ピッタリ合ってる表示」にする
+    if(testMode){
+      const t = TUNING_TARGETS[tuneStep];
+      const fake = testSound ? { ...t, cents:0, abs:0 } : null;
+      drawTuningUI(testSound ? t.freq : 0, fake);
+    }else{
+      drawTuningUI(freq || 0, target);
+    }
 
     if(!tuningCleared && tuneHoldMs >= TUNE_NEED_MS){
       // この音（弦）をクリア → 次の音へ
@@ -848,6 +891,17 @@ btnMic.addEventListener("click", async () => {
   }
 });
 btnCal.addEventListener("click", calibrate);
+
+function setTestMode(on){
+  testMode = !!on;
+  btnTest.classList.toggle("on", testMode);
+  btnTest.textContent = testMode ? "TEST中（なんでもOK）" : "TEST（なんでもOK）";
+  showComic("TEST", testMode ? "どんな音でもOK：声・口笛でも進みます" : "TESTモードをOFFにしました");
+}
+
+btnTest.addEventListener("click", () => {
+  setTestMode(!testMode);
+});
 btnStart.addEventListener("click", () => {
   if(audioCtx) audioCtx.resume().catch(()=>{});
   if(!chartLoaded){ setStatus("先にパターン読み込み"); return; }
@@ -870,6 +924,7 @@ btnCloseResult.addEventListener("click", () => {
 
 // ===== Init =====
 applyDifficulty(diffSelect.value);
+setTestMode(false);
 setLife(1.0);
 setHUD();
 setStatus("待機中：パターン読み込み → マイク許可 → キャリブレーション → 開始");
