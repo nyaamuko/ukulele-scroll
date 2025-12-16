@@ -85,10 +85,11 @@ body{
   position:relative;
   flex:1;
   padding: 10px 10px calc(12px + var(--safeBottom) + 22px);
-  display:flex;
-  flex-direction:column;
-  gap: 6px;
+  display:grid;
+  grid-template-rows: 1fr auto;
+  gap: 8px;
   overflow:hidden;
+  align-content: stretch;
 }
   display:flex;
   flex-direction:column;
@@ -99,7 +100,7 @@ body{
 .bgCode{
   position:absolute;
   left:50%;
-  top: 30%;
+  top: 38%;
   transform: translate(-50%,-50%);
   font-size: 150px;
   font-weight: 1000;
@@ -110,9 +111,9 @@ body{
   text-shadow:
     0 0 24px rgba(255,255,255,0.22),
     0 0 80px rgba(124,247,255,0.18);
-  pointer-events:none;
   user-select:none;
 }
+
 .bgCode.wobbleStrong{ animation: wobbleStrong 1.7s ease-in-out infinite; }
 .bgCode.wobbleMid{ animation: wobbleMid 2.8s ease-in-out infinite; }
 .bgCode.wobbleOff{ animation: none; }
@@ -441,7 +442,23 @@ border-top: 1px solid var(--line);
 }
 .slot{ height: clamp(30px, 4.2vh, 34px); }
 .handIllust{ height: 56px; }
-.bgCode{ font-size: 132px; }
+.bgCode{
+  position:absolute;
+  left:50%;
+  top: 38%;
+  transform: translate(-50%,-50%);
+  font-size: 150px;
+  font-weight: 1000;
+  letter-spacing: 3px;
+  opacity: 0.22;
+  color: #ffffff;
+  filter: blur(0.6px);
+  text-shadow:
+    0 0 24px rgba(255,255,255,0.22),
+    0 0 80px rgba(124,247,255,0.18);
+  user-select:none;
+}
+
 
 /* 下のボタン列を横スクロールにして縦の高さを節約 */
 .smallControls{
@@ -460,7 +477,23 @@ border-top: 1px solid var(--line);
 
 /* さらに小さい端末向け */
 @media (max-height: 730px){
-  .bgCode{ font-size: 118px; top: 28%; }
+  .bgCode{
+  position:absolute;
+  left:50%;
+  top: 38%;
+  transform: translate(-50%,-50%);
+  font-size: 150px;
+  font-weight: 1000;
+  letter-spacing: 3px;
+  opacity: 0.22;
+  color: #ffffff;
+  filter: blur(0.6px);
+  text-shadow:
+    0 0 24px rgba(255,255,255,0.22),
+    0 0 80px rgba(124,247,255,0.18);
+  user-select:none;
+}
+
   .boardHeader{ grid-template-columns: 1fr 122px auto; }
   .handIllust{ width: 122px; }
   .btn{ padding: 8px 9px; font-size: 13px; }
@@ -468,21 +501,16 @@ border-top: 1px solid var(--line);
 }
 
 
-/* v10: 背景コードを完全にレイアウト外へ（上の謎スペース対策） */
+
+
+.boardCard{ flex: 1 1 auto; min-height: 0; }
+.fretboardWrap{ height: 100%; }
+
+/* v11: 上部の空白を作らない（boardCardを最上段に固定） */
+.boardCard{ margin-top: 0 !important; align-self: stretch; z-index: 1; }
+.prompt{ z-index: 1; }
 .bgLayer{
   position:absolute;
   inset: 0;
   pointer-events:none;
-  display:flex;
-  align-items:center;
-  justify-content:center;
 }
-.bgCode{
-  position:relative; /* bgLayer内で自由に揺れる */
-  left:auto;
-  top:auto;
-  transform: none;
-}
-
-.boardCard{ flex: 1 1 auto; min-height: 0; }
-.fretboardWrap{ height: 100%; }
