@@ -1,15 +1,18 @@
 :root{
   --text: #f5f7ff;
-  --muted: rgba(245,247,255,0.7);
+  --muted: rgba(245,247,255,0.74);
   --line: rgba(255,255,255,0.12);
   --accent: #ffef5a;
   --accent2: #7cf7ff;
   --danger: #ff4d6d;
+
   --shadow: 0 10px 30px rgba(0,0,0,0.35);
-  --radius2: 24px;
+  --radius2: 22px;
+
   --safeTop: env(safe-area-inset-top);
   --safeBottom: env(safe-area-inset-bottom);
 }
+
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
@@ -24,6 +27,7 @@ body{
     radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06) 1px, transparent 1.8px) 0 0 / 10px 10px,
     radial-gradient(circle at 80% 35%, rgba(255,255,255,0.04) 1px, transparent 1.8px) 0 0 / 12px 12px;
 }
+
 .phone{
   width: min(430px, 100vw);
   height: 100svh;
@@ -40,11 +44,12 @@ body{
     linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03)),
     repeating-linear-gradient(135deg, rgba(255,255,255,0.035) 0, rgba(255,255,255,0.035) 2px, transparent 2px, transparent 12px);
 }
+
 .topbar{
   display:flex;
   justify-content:space-between;
   align-items:flex-start;
-  padding: 14px 14px 10px;
+  padding: 12px 12px 9px;
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(10px);
   background: rgba(0,0,0,0.25);
@@ -54,7 +59,7 @@ body{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  padding: 7px 10px;
+  padding: 6px 9px;
   border-radius: 999px;
   background: rgba(255,239,90,0.18);
   border: 1px solid rgba(255,239,90,0.35);
@@ -67,7 +72,7 @@ body{
 .topbar__right{ padding-top: 2px; }
 .timer{
   display:flex; gap:6px; align-items:baseline;
-  padding: 8px 10px;
+  padding: 7px 9px;
   border-radius: 999px;
   background: rgba(124,247,255,0.12);
   border: 1px solid rgba(124,247,255,0.25);
@@ -80,19 +85,19 @@ body{
 .stage2{
   position:relative;
   flex:1;
-  padding: 14px 14px calc(14px + var(--safeBottom));
+  padding: 12px 12px 10px;
   display:flex;
   flex-direction:column;
-  gap: 12px;
-  overflow:auto;
-  -webkit-overflow-scrolling: touch;
+  gap: 10px;
+  overflow:hidden; /* スクロール禁止 */
 }
+
 .bgCode{
   position:absolute;
   left:50%;
-  top: 28%;
+  top: 30%;
   transform: translate(-50%,-50%);
-  font-size: 170px;
+  font-size: 150px;
   font-weight: 1000;
   letter-spacing: 3px;
   opacity: 0.22;
@@ -104,8 +109,8 @@ body{
   pointer-events:none;
   user-select:none;
 }
-.bgCode.wobbleStrong{ animation: wobbleStrong 1.9s ease-in-out infinite; }
-.bgCode.wobbleMid{ animation: wobbleMid 3.0s ease-in-out infinite; }
+.bgCode.wobbleStrong{ animation: wobbleStrong 1.7s ease-in-out infinite; }
+.bgCode.wobbleMid{ animation: wobbleMid 2.8s ease-in-out infinite; }
 .bgCode.wobbleOff{ animation: none; }
 @keyframes wobbleStrong{
   0%   { transform: translate(-50%,-50%) rotate(-3deg) translate(-6px,-10px) scale(1.02); }
@@ -117,59 +122,104 @@ body{
   50%  { transform: translate(-50%,-50%) rotate( 1.5deg) translateY( 8px); }
   100% { transform: translate(-50%,-50%) rotate(-1.5deg) translateY(-6px); }
 }
+
 .boardCard{
   position:relative;
-  margin-top: 6px;
-  padding: 12px 12px 12px;
+  padding: 11px 11px 10px;
   border-radius: var(--radius2);
   border: 1px solid rgba(255,255,255,0.10);
   background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
   backdrop-filter: blur(10px);
 }
+
+/* 横方向の隙間を詰めて整える */
 .boardHeader{
   display:grid;
-  grid-template-columns: 1fr 140px auto;
-  gap: 10px;
+  grid-template-columns: 1fr 132px auto;
+  gap: 8px;
   align-items:center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
-.boardHint{ font-size: 12px; color: var(--muted); font-weight: 800; }
-.boardTitle{ font-size: 22px; font-weight: 1000; color: var(--accent); letter-spacing: 1px; margin-top: 2px; }
+.boardHint{
+  font-size: 13px;
+  color: rgba(255,255,255,0.92); /* 見やすく */
+  font-weight: 1000;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+}
+.boardTitle{
+  margin-top: 2px;
+  font-size: 22px;
+  font-weight: 1000;
+  color: var(--accent);
+  letter-spacing: 1px;
+}
 
-.handWrap{ display:flex; justify-content:center; }
-.hand{ display:flex; gap: 8px; align-items:flex-end; }
-.finger{
-  width: 28px;
+.boardLeft{ min-width: 0; }
+.boardRight{ display:flex; gap:6px; align-items:center; }
+
+/* 左手の絵（指先アップ + 手のひら少し） */
+.handIllust{
+  position:relative;
+  width: 132px;
+  height: 62px;
   display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap: 5px;
+  align-items:flex-end;
+  justify-content:center;
+}
+.palm{
+  position:absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 28px;
+  border-radius: 18px 18px 14px 14px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  filter: blur(0.2px);
+}
+
+/* 指ボタン（実際は指先の丸） */
+.fbtn{
+  position:absolute;
+  bottom: 20px;
+  width: 30px;
+  height: 30px;
   padding:0;
   border:none;
-  background:transparent;
-  color:inherit;
+  background: transparent;
   cursor:pointer;
 }
-.finger:active{ transform: scale(0.98); }
-.fingerTip{
-  width: 22px; height: 22px; border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  border: 2px solid rgba(255,255,255,0.18);
-  box-shadow: inset 0 0 0 5px rgba(0,0,0,0.12);
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
-}
-.fingerTip.on{
-  transform: translateY(-2px) scale(1.06);
-  border-color: rgba(255,239,90,0.78);
-  box-shadow:
-    inset 0 0 0 5px rgba(0,0,0,0.10),
-    0 0 0 8px rgba(255,239,90,0.14),
-    0 0 32px rgba(255,239,90,0.30);
-}
-.fingerLabel{
+.fbtn:active{ transform: scale(0.98); }
+
+.fbtn--index{ left: 18px; }
+.fbtn--middle{ left: 44px; }
+.fbtn--ring{ left: 70px; }
+.fbtn--pinky{ left: 96px; }
+
+.fglow{
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   font-weight: 1000;
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.10);
+  border: 2px solid rgba(255,255,255,0.18);
+  box-shadow: inset 0 0 0 6px rgba(0,0,0,0.12);
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.fglow.on{
+  transform: translateY(-2px) scale(1.07);
+  border-color: rgba(255,239,90,0.80);
+  color: rgba(20,20,20,0.95);
+  background: rgba(255,239,90,0.90);
+  box-shadow:
+    0 0 0 10px rgba(255,239,90,0.16),
+    0 0 40px rgba(255,239,90,0.28);
 }
 
 .chip{
@@ -190,7 +240,7 @@ body{
   border-radius: 18px;
   background: rgba(0,0,0,0.18);
   border: 1px solid rgba(255,255,255,0.08);
-  padding: 12px 10px;
+  padding: 10px 9px;
   position:relative;
   transition: opacity 180ms ease;
 }
@@ -201,19 +251,20 @@ body{
 .fretboard{
   position:relative;
   display:grid;
-  grid-template-columns: 46px repeat(5, 1fr);
-  grid-template-rows: repeat(4, 54px);
-  gap: 9px 9px;
+  grid-template-columns: 44px repeat(5, 1fr);
+  grid-template-rows: repeat(4, 48px);
+  gap: 8px 8px;
   align-items:center;
 }
+
 .fretNums{
   position:absolute;
-  left: 46px;
+  left: 44px;
   right: 0;
   top: -6px;
   display:grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 9px;
+  gap: 8px;
   pointer-events:none;
   user-select:none;
   opacity: 0.8;
@@ -224,15 +275,17 @@ body{
   color: rgba(255,255,255,0.72);
   font-weight: 900;
 }
+
 .stringLine{
   position:absolute;
-  left: 54px;
+  left: 52px;
   right: 12px;
   height: 2px;
   border-radius: 999px;
   background: rgba(255,255,255,0.45);
   pointer-events:none;
 }
+
 .stringTag{
   font-weight: 1000;
   font-size: 12px;
@@ -242,9 +295,10 @@ body{
   gap:2px;
 }
 .stringTag small{ font-weight: 800; color: var(--muted); font-size: 10px; }
+
 .slot{
   position:relative;
-  height: 38px;
+  height: 34px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.04);
@@ -254,19 +308,20 @@ body{
   content:"";
   position:absolute;
   right: 0;
-  top: 7px;
-  bottom: 7px;
+  top: 6px;
+  bottom: 6px;
   width: 2px;
   border-radius: 999px;
   background: rgba(255,255,255,0.12);
 }
+
 .marker{
   position:absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%,-50%);
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
   display:flex;
   align-items:center;
@@ -293,11 +348,17 @@ body{
   transform: translate(-50%,-50%) scale(1.05);
 }
 
-.prompt{ margin-top:auto; display:flex; flex-direction:column; gap: 10px; }
+/* 下部UIを圧縮して全体を表示 */
+.prompt{
+  margin-top: 0;
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+}
 .speech{
   position:relative;
-  padding: 13px 13px 11px;
-  border-radius: 18px;
+  padding: 10px 11px 9px;
+  border-radius: 16px;
   background: rgba(255,255,255,0.10);
   border: 2px solid rgba(255,255,255,0.20);
   box-shadow: 0 8px 18px rgba(0,0,0,0.30);
@@ -305,30 +366,33 @@ body{
 .speech:after{
   content:"";
   position:absolute;
-  left: 26px;
-  bottom: -10px;
-  width: 18px; height: 18px;
+  left: 22px;
+  bottom: -9px;
+  width: 16px; height: 16px;
   background: rgba(255,255,255,0.10);
   border-left: 2px solid rgba(255,255,255,0.20);
   border-bottom: 2px solid rgba(255,255,255,0.20);
   transform: rotate(45deg);
 }
-.speech__title{ font-size: 18px; font-weight: 1000; letter-spacing: 1px; }
-.speech__text{ margin-top: 6px; font-size: 14px; color: rgba(255,255,255,0.92); font-weight: 800; }
-.controls{ display:flex; gap:10px; }
+.speech__title{ font-size: 17px; font-weight: 1000; letter-spacing: 1px; }
+.speech__text{ margin-top: 4px; font-size: 13px; color: rgba(255,255,255,0.92); font-weight: 800; }
+
+.controls{ display:flex; gap:8px; }
 .btn{
   width:100%;
   border:none;
-  border-radius: 16px;
-  padding: 12px 12px;
+  border-radius: 14px;
+  padding: 10px 10px;
   font-weight: 1000;
-  font-size: 16px;
+  font-size: 15px;
   cursor:pointer;
   box-shadow: 0 10px 18px rgba(0,0,0,0.22);
 }
 .btn--primary{ background: linear-gradient(180deg, rgba(255,239,90,1), rgba(255,206,0,1)); color: #151515; }
 .btn--ghost{ background: rgba(255,255,255,0.10); color: var(--text); border: 1px solid rgba(255,255,255,0.20); }
-.smallControls{ display:flex; flex-wrap:wrap; gap:8px; }
+
+.smallControls{ display:flex; flex-wrap:wrap; gap:7px; }
+.smallControls .chip{ padding: 8px 10px; font-size: 12px; }
 
 .comicBurst{
   position:absolute;
@@ -357,7 +421,7 @@ body{
 .comicBurst.miss .comicBurst__text{ color:#13060a; }
 
 .bottombar{
-  padding: 10px 14px;
+  padding: 9px 12px;
   border-top: 1px solid var(--line);
   background: rgba(0,0,0,0.25);
   backdrop-filter: blur(10px);
@@ -367,7 +431,7 @@ body{
 .debug{
   font-size: 11px;
   color: rgba(255,255,255,0.72);
-  padding: 8px 10px;
+  padding: 7px 9px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(0,0,0,0.22);

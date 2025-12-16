@@ -1,4 +1,4 @@
-// app.js (v4 clean)
+// app.js (v5)
 let state = {
   items: [],
   idx: 0,
@@ -31,6 +31,7 @@ const phaseText = document.getElementById("phaseText");
 const burst = document.getElementById("burst");
 const burstText = document.getElementById("burstText");
 
+// 指先（絵）の光り
 const tipEls = {
   "人": document.getElementById("tip-人"),
   "中": document.getElementById("tip-中"),
@@ -124,8 +125,8 @@ function applyCurrentGlow(){
 function addStringLines(){
   fretboard.querySelectorAll(".stringLine").forEach(n => n.remove());
 
-  const rowH = 54;
-  const gap = 9;
+  const rowH = 48;
+  const gap = 8;
   for (let r=0; r<4; r++){
     const y = r*(rowH+gap) + rowH/2;
     const line = document.createElement("div");
@@ -148,8 +149,8 @@ function clearMarkerGlow(){
 function renderFretboard(item){
   const maxFret = item.maxFret ?? 5;
 
-  fretboard.style.gridTemplateColumns = `46px repeat(${maxFret}, 1fr)`;
-  fretboard.style.gridTemplateRows = `repeat(4, 54px)`;
+  fretboard.style.gridTemplateColumns = `44px repeat(${maxFret}, 1fr)`;
+  fretboard.style.gridTemplateRows = `repeat(4, 48px)`;
   fretboard.innerHTML = "";
 
   buildFretNums(maxFret);
@@ -246,8 +247,8 @@ demoOkBtn.addEventListener("click", () => showBurst("OK!!", false));
 demoNgBtn.addEventListener("click", () => showBurst("MISS!", true));
 clearHoverBtn.addEventListener("click", () => resetRealtime());
 
-// left hand: click to lock/unlock
-document.querySelectorAll(".finger").forEach(btn => {
+// 手の絵：タップでロック
+document.querySelectorAll(".fbtn").forEach(btn => {
   btn.addEventListener("click", () => {
     const f = btn.dataset.f || "";
     if (!f) return;
@@ -258,7 +259,7 @@ document.querySelectorAll(".finger").forEach(btn => {
   });
 });
 
-// fretboard marker interactions
+// フレット側：触ると即発光＆強調
 fretboard.addEventListener("pointerover", (e) => {
   const m = e.target.closest(".marker.on");
   if (!m) return;

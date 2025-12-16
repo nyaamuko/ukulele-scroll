@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Ukeflow - STAGE2 Mock v4</title>
+  <title>Ukeflow - STAGE2 Mock v5</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -28,35 +28,32 @@
 
       <section class="boardCard">
         <div class="boardHeader">
-          <div class="boardHeader__left">
-            <div class="boardHint">押さえる位置（フレット）</div>
+          <div class="boardLeft">
+            <div class="boardHint">押さえる位置</div>
             <div class="boardTitle"><span id="codeLabel">--</span></div>
           </div>
 
-          <div class="boardHeader__mid">
-            <div class="handWrap" aria-label="Left hand">
-              <div class="hand">
-                <button class="finger" data-f="人" aria-label="人">
-                  <div class="fingerTip" id="tip-人"></div>
-                  <div class="fingerLabel">人</div>
-                </button>
-                <button class="finger" data-f="中" aria-label="中">
-                  <div class="fingerTip" id="tip-中"></div>
-                  <div class="fingerLabel">中</div>
-                </button>
-                <button class="finger" data-f="薬" aria-label="薬">
-                  <div class="fingerTip" id="tip-薬"></div>
-                  <div class="fingerLabel">薬</div>
-                </button>
-                <button class="finger" data-f="小" aria-label="小">
-                  <div class="fingerTip" id="tip-小"></div>
-                  <div class="fingerLabel">小</div>
-                </button>
-              </div>
+          <!-- 左手：絵＋指先に「人中薬小」 -->
+          <div class="boardMid">
+            <div class="handIllust" aria-label="Left hand illustration">
+              <div class="palm"></div>
+
+              <button class="fbtn fbtn--index" data-f="人" aria-label="人">
+                <div class="fglow" id="tip-人"><span>人</span></div>
+              </button>
+              <button class="fbtn fbtn--middle" data-f="中" aria-label="中">
+                <div class="fglow" id="tip-中"><span>中</span></div>
+              </button>
+              <button class="fbtn fbtn--ring" data-f="薬" aria-label="薬">
+                <div class="fglow" id="tip-薬"><span>薬</span></div>
+              </button>
+              <button class="fbtn fbtn--pinky" data-f="小" aria-label="小">
+                <div class="fglow" id="tip-小"><span>小</span></div>
+              </button>
             </div>
           </div>
 
-          <div class="boardHeader__right">
+          <div class="boardRight">
             <button class="chip" id="toggleOverlayBtn">濃さ：中</button>
             <button class="chip" id="toggleWobbleBtn">揺れ：強</button>
           </div>
