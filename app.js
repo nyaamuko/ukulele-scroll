@@ -127,17 +127,29 @@ function applyCurrentGlow(){
 }
 
 function addStringLines(){
+  // 既存ラインを消す
   fretboard.querySelectorAll(".stringLine").forEach(n => n.remove());
 
-  const rowH = 48;
-  const gap = 8;
+  // 画面サイズによりCSS側で行高/ギャップが変わるので、実測して中央にラインを置く
+  const slots = Array.from(fretboard.querySelectorAll(".slot"));
+  if (!slots.length) return;
+
+  const fbRect = fretboard.getBoundingClientRect();
+  // 1行あたりのslot数（maxFret）
+  const cols = (state.items?.[state.idx]?.maxFret ?? 5);
+
   for (let r=0; r<4; r++){
-    const y = r*(rowH+gap) + rowH/2;
+    const firstSlot = slots[r*cols]; // 各行の先頭slot
+    if (!firstSlot) continue;
+    const rc = firstSlot.getBoundingClientRect();
+    const centerY = (rc.top - fbRect.top) + rc.height/2;
+
     const line = document.createElement("div");
     line.className = "stringLine";
-    line.style.top = `${y}px`;
+    line.style.top = `${centerY}px`;
     fretboard.appendChild(line);
   }
+}
 }
 
 function setMarkerGlow(finger){
