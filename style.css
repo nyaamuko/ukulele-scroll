@@ -14,7 +14,7 @@
 }
 
 *{ box-sizing:border-box; }
-html,body{ height:100%; }
+html,body{ height:100%; background:#0b0f1a; }
 body{
   margin:0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
@@ -535,4 +535,39 @@ body{
   }
   .handIllust{ height: 52px; }
   .bgCode{ font-size: 130px; }
+}
+
+
+/* v15: mobile fullscreen (remove white margins) */
+@media (max-width: 520px){
+  body{
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+  .phone{
+    width: 100vw;
+    height: 100svh;
+    border-radius: 0;
+  }
+}
+
+/* v15: keep prompt visible (avoid overlap) */
+.fretboardWrap{ max-height: 48vh; }
+@media (max-height: 760px){
+  .fretboardWrap{ max-height: 42vh; }
+  .fretboard{
+    grid-template-rows: repeat(4, clamp(28px, 4.0vh, 38px));
+    gap: 6px 6px;
+  }
+  .stringTag{ font-size: 11px; }
+  .stringTag small{ font-size: 9px; }
+  .boardHeader{ gap: 6px; }
+  .boardTitle{ font-size: 18px; }
+  .handIllust{ height: 50px; }
+  .speech{ padding: 6px 8px 6px; }
+  .speech__title{ font-size: 13px; }
+  .speech__text{ font-size: 11px; }
+}
+@media (max-height: 700px){
+  .fretboardWrap{ max-height: 38vh; }
 }
