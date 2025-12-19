@@ -130,16 +130,15 @@ function addStringLines(){
   // 既存ラインを消す
   fretboard.querySelectorAll(".stringLine").forEach(n => n.remove());
 
-  // 画面サイズによりCSS側で行高/ギャップが変わるので、実測して中央にラインを置く
+  // CSSで行高/ギャップが変わるので、実測して中央にラインを置く
   const slots = Array.from(fretboard.querySelectorAll(".slot"));
   if (!slots.length) return;
 
   const fbRect = fretboard.getBoundingClientRect();
-  // 1行あたりのslot数（maxFret）
   const cols = (state.items?.[state.idx]?.maxFret ?? 5);
 
   for (let r=0; r<4; r++){
-    const firstSlot = slots[r*cols]; // 各行の先頭slot
+    const firstSlot = slots[r*cols];
     if (!firstSlot) continue;
     const rc = firstSlot.getBoundingClientRect();
     const centerY = (rc.top - fbRect.top) + rc.height/2;
@@ -149,7 +148,6 @@ function addStringLines(){
     line.style.top = `${centerY}px`;
     fretboard.appendChild(line);
   }
-}
 }
 
 function setMarkerGlow(finger){
