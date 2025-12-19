@@ -126,21 +126,48 @@ function applyCurrentGlow(){
   }
 }
 
+// ======= ここがWEBのみ修正の本体 =======
 function addStringLines(){
   // 既存ラインを消す
   fretboard.querySelectorAll(".stringLine").forEach(n => n.remove());
 
-  // CSSで行高/ギャップが変わるので、実測して中央にラインを置く
+  const cols = (state.items?.[state.idx]?.maxFret ?? 5);
+
+  // PC幅（WEB）だけ：固定計算で安定させる
+  const isDesktop = window.matchMedia("(min-width: 521px)").matches;
+
+  if (isDesktop){
+    // renderFretboard() の固定値と合わせる（48px行高、8pxギャップ想定）
+    const rowH = 48;
+    const gap = 8;
+
+    // .fretNums が上にいるので、slot行の開始位置は「fretboard内の最初のslot中心」を基準にする
+    const firstSlot = fretboard.querySelector(".slot");
+    if (!firstSlot) return;
+
+    const fbRect = fretboard.getBoundingClientRect();
+    const sRect  = firstSlot.getBoundingClientRect();
+    const firstCenterY = (sRect.top - fbRect.top) + sRect.height / 2;
+
+    for (let r=0; r<4; r++){
+      const centerY = firstCenterY + r * (rowH + gap);
+      const line = document.createElement("div");
+      line.className = "stringLine";
+      line.style.top = `${centerY}px`;
+      fretboard.appendChild(line);
+    }
+    return;
+  }
+
+  // スマホ（携帯）だけ：実測で中央にライン（ズレにくい）
   const slots = Array.from(fretboard.querySelectorAll(".slot"));
   if (!slots.length) return;
 
   const fbRect = fretboard.getBoundingClientRect();
-  const cols = (state.items?.[state.idx]?.maxFret ?? 5);
-
   for (let r=0; r<4; r++){
-    const firstSlot = slots[r*cols];
-    if (!firstSlot) continue;
-    const rc = firstSlot.getBoundingClientRect();
+    const first = slots[r*cols];
+    if (!first) continue;
+    const rc = first.getBoundingClientRect();
     const centerY = (rc.top - fbRect.top) + rc.height/2;
 
     const line = document.createElement("div");
@@ -149,6 +176,7 @@ function addStringLines(){
     fretboard.appendChild(line);
   }
 }
+// =====================================
 
 function setMarkerGlow(finger){
   fretboard.querySelectorAll(".marker.on").forEach(m => {
@@ -314,6 +342,10 @@ fretboard.addEventListener("keydown", (e) => {
   if (!state.lockFinger) clearMarkerGlow();
 });
 
+// リサイズ/ズーム変更で弦ラインを引き直し（WEBのズレ防止）
+window.addEventListener("resize", () => {
+  try { addStringLines(); } catch(_) {}
+});
 
 // ==== Mic & Judge (v13) ====
 let audioCtx = null;
@@ -491,7 +523,6 @@ if (micBtn){
 if (judgeBtn){
   judgeBtn.addEventListener("click", () => judgeOnce());
 }
-
 
 // Load
 async function init(){
