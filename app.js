@@ -1,5 +1,6 @@
 // app.js (v5)
 let state = {
+  stage: 2, // 1 or 2
   items: [],
   idx: 0,
   phaseIdx: 0,
@@ -15,9 +16,14 @@ const fretboard = document.getElementById("fretboard");
 const timerValue = document.getElementById("timerValue");
 const debug = document.getElementById("debug");
 const fretWrap = document.getElementById("fretWrap");
+const stage1Panel = document.getElementById("stage1Panel");
+const tuneTestBtn = document.getElementById("tuneTestBtn");
+const tuneResetBtn = document.getElementById("tuneResetBtn");
+const tuneEls = {t1: document.getElementById("tune1"), t2: document.getElementById("tune2"), t3: document.getElementById("tune3"), t4: document.getElementById("tune4")};
 
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
+const stageBtn = document.getElementById("stageBtn");
 const phaseBtn = document.getElementById("phaseBtn");
 const toggleOverlayBtn = document.getElementById("toggleOverlayBtn");
 const toggleWobbleBtn = document.getElementById("toggleWobbleBtn");
@@ -126,48 +132,21 @@ function applyCurrentGlow(){
   }
 }
 
-// ======= ここがWEBのみ修正の本体 =======
 function addStringLines(){
   // 既存ラインを消す
   fretboard.querySelectorAll(".stringLine").forEach(n => n.remove());
 
-  const cols = (state.items?.[state.idx]?.maxFret ?? 5);
-
-  // PC幅（WEB）だけ：固定計算で安定させる
-  const isDesktop = window.matchMedia("(min-width: 521px)").matches;
-
-  if (isDesktop){
-    // renderFretboard() の固定値と合わせる（48px行高、8pxギャップ想定）
-    const rowH = 48;
-    const gap = 8;
-
-    // .fretNums が上にいるので、slot行の開始位置は「fretboard内の最初のslot中心」を基準にする
-    const firstSlot = fretboard.querySelector(".slot");
-    if (!firstSlot) return;
-
-    const fbRect = fretboard.getBoundingClientRect();
-    const sRect  = firstSlot.getBoundingClientRect();
-    const firstCenterY = (sRect.top - fbRect.top) + sRect.height / 2;
-
-    for (let r=0; r<4; r++){
-      const centerY = firstCenterY + r * (rowH + gap);
-      const line = document.createElement("div");
-      line.className = "stringLine";
-      line.style.top = `${centerY}px`;
-      fretboard.appendChild(line);
-    }
-    return;
-  }
-
-  // スマホ（携帯）だけ：実測で中央にライン（ズレにくい）
+  // CSSで行高/ギャップが変わるので、実測して中央にラインを置く
   const slots = Array.from(fretboard.querySelectorAll(".slot"));
   if (!slots.length) return;
 
   const fbRect = fretboard.getBoundingClientRect();
+  const cols = (state.items?.[state.idx]?.maxFret ?? 5);
+
   for (let r=0; r<4; r++){
-    const first = slots[r*cols];
-    if (!first) continue;
-    const rc = first.getBoundingClientRect();
+    const firstSlot = slots[r*cols];
+    if (!firstSlot) continue;
+    const rc = firstSlot.getBoundingClientRect();
     const centerY = (rc.top - fbRect.top) + rc.height/2;
 
     const line = document.createElement("div");
@@ -176,7 +155,6 @@ function addStringLines(){
     fretboard.appendChild(line);
   }
 }
-// =====================================
 
 function setMarkerGlow(finger){
   fretboard.querySelectorAll(".marker.on").forEach(m => {
@@ -230,6 +208,41 @@ function renderFretboard(item){
   clearMarkerGlow();
 }
 
+function applyStage(){
+  const is1 = (state.stage === 1);
+  if (stage1Panel) stage1Panel.hidden = !is1;
+  if (fretWrap) fretWrap.hidden = is1;
+  if (stageBtn) stageBtn.textContent = is1 ? "STAGE2" : "STAGE1";
+  const badge = document.querySelector(".badge");
+  if (badge) badge.textContent = is1 ? "STAGE 1" : "STAGE 2";
+  if (is1){
+    if (phaseTitle) phaseTitle.textContent = "TUNING";
+    if (phaseText) phaseText.textContent = "4弦G / 3弦C / 2弦E / 1弦A を合わせよう";
+    if (timerValue) timerValue.textContent = "--";
+  }
+}
+
+function resetTuning(){
+  if (!tuneEls) return;
+  Object.values(tuneEls).forEach(el=>{
+    if (!el) return;
+    el.textContent = "待機";
+    el.classList.remove("ok");
+  });
+  setMicStatus(false);
+}
+
+function passTuningAll(){
+  if (!tuneEls) return;
+  [["t4","OK"],["t3","OK"],["t2","OK"],["t1","OK"]].forEach(([k,txt])=>{
+    const el = tuneEls[k];
+    if (!el) return;
+    el.textContent = txt;
+    el.classList.add("ok");
+  });
+  showBurst("OK!!", false);
+}
+
 function render(){
   if (!state.items.length){
     bgCode.textContent = "--";
@@ -248,6 +261,7 @@ function render(){
   applyWobble();
 
   setDebug(`OK: CODE=${item.code} / ${state.idx+1}/${state.items.length}`);
+  applyStage();
 }
 
 function showBurst(text, isMiss=false){
@@ -273,6 +287,16 @@ nextBtn.addEventListener("click", () => {
   state.idx = (state.idx + 1) % state.items.length;
   render();
 });
+if (stageBtn){
+  stageBtn.addEventListener("click", () => {
+    state.stage = (state.stage === 1) ? 2 : 1;
+    applyStage();
+    if (state.stage === 2) render();
+  });
+}
+if (tuneTestBtn){ tuneTestBtn.addEventListener("click", () => passTuningAll()); }
+if (tuneResetBtn){ tuneResetBtn.addEventListener("click", () => resetTuning()); }
+
 phaseBtn.addEventListener("click", () => {
   state.phaseIdx = (state.phaseIdx + 1) % PHASES.length;
   renderPhase();
@@ -342,10 +366,6 @@ fretboard.addEventListener("keydown", (e) => {
   if (!state.lockFinger) clearMarkerGlow();
 });
 
-// リサイズ/ズーム変更で弦ラインを引き直し（WEBのズレ防止）
-window.addEventListener("resize", () => {
-  try { addStringLines(); } catch(_) {}
-});
 
 // ==== Mic & Judge (v13) ====
 let audioCtx = null;
@@ -524,6 +544,7 @@ if (judgeBtn){
   judgeBtn.addEventListener("click", () => judgeOnce());
 }
 
+
 // Load
 async function init(){
   try{
@@ -534,6 +555,8 @@ async function init(){
     state.items = data.stage2_chords || [];
     state.idx = 0;
     render();
+    resetTuning();
+    applyStage();
   }catch(e){
     console.error(e);
     setDebug("ERROR: notes.json 読込失敗");
