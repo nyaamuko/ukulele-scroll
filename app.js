@@ -20,6 +20,15 @@ const stage1Panel = document.getElementById("stage1Panel");
 const tuneTestBtn = document.getElementById("tuneTestBtn");
 const tuneResetBtn = document.getElementById("tuneResetBtn");
 const tuneEls = {t1: document.getElementById("tune1"), t2: document.getElementById("tune2"), t3: document.getElementById("tune3"), t4: document.getElementById("tune4")};
+const tuneStartBtn = document.getElementById("tuneStartBtn");
+const ticker = document.getElementById("ticker");
+const tickerTrack = document.getElementById("tickerTrack");
+const tickerCode = document.getElementById("tickerCode");
+const bigString = document.getElementById("bigString");
+const bigStringLabel = document.getElementById("bigStringLabel");
+const bigStringNote = document.getElementById("bigStringNote");
+const bigStringHint = document.getElementById("bigStringHint");
+
 
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
@@ -223,6 +232,9 @@ function applyStage(){
 }
 
 function resetTuning(){
+  stopTuningFlow();
+  hideBigString();
+
   if (!tuneEls) return;
   Object.values(tuneEls).forEach(el=>{
     if (!el) return;
@@ -230,6 +242,141 @@ function resetTuning(){
     el.classList.remove("ok");
   });
   setMicStatus(false);
+}
+
+
+let tuningRun = { running:false, step:0, duration:3800, cueShowAt:0.68, cueJudgeAt:0.86 };
+
+const STAGE1_STEPS = [
+  { key:"t4", strLabel:"4弦", note:"G", pc: 7 },
+  { key:"t3", strLabel:"3弦", note:"C", pc: 0 },
+  { key:"t2", strLabel:"2弦", note:"E", pc: 4 },
+  { key:"t1", strLabel:"1弦", note:"A", pc: 9 },
+];
+
+function showBigString(step, mode="ready"){
+  if (!bigString) return;
+  bigString.hidden = false;
+  bigStringLabel.textContent = step.strLabel;
+  bigStringNote.textContent = step.note;
+  bigStringHint.textContent = (mode === "judge") ? "今！鳴らして！" : "準備…";
+}
+function hideBigString(){
+  if (!bigString) return;
+  bigString.hidden = true;
+}
+
+function setTuneOK(stepKey){
+  const el = tuneEls?.[stepKey];
+  if (!el) return;
+  el.textContent = "OK";
+  el.classList.add("ok");
+}
+function setTuneWait(stepKey){
+  const el = tuneEls?.[stepKey];
+  if (!el) return;
+  el.textContent = "待機";
+  el.classList.remove("ok");
+}
+
+function setTickerNote(note){
+  if (tickerCode) tickerCode.textContent = note;
+  if (tickerTrack) tickerTrack.style.transform = "translateX(110%)";
+}
+
+async function judgeStage1TargetPC(targetPC, windowMs=700){
+  if (!micStream || !analyser || !timeData || !audioCtx) return false;
+
+  const started = performance.now();
+  let hits = 0;
+
+  while (performance.now() - started < windowMs){
+    analyser.getFloatTimeDomainData(timeData);
+    const {freq, rms} = autoCorrelateFloat(timeData, audioCtx.sampleRate);
+    if (rms > 0.012 && freq){
+      const pc = freqToPitchClass(freq);
+      if (pc === targetPC) hits++;
+    }
+    await new Promise(r => setTimeout(r, 45));
+  }
+  return hits >= 3;
+}
+
+function stopTuningFlow(){
+  tuningRun.running = false;
+}
+
+async function runTuningFlow(){
+  if (tuningRun.running) return;
+
+  state.stage = 1;
+  applyStage();
+
+  if (!micStream){
+    alert("先に「🎤 マイク開始」を押してください（STAGE1チューニング用）");
+    return;
+  }
+
+  tuningRun.running = true;
+  tuningRun.step = 0;
+
+  STAGE1_STEPS.forEach(s => setTuneWait(s.key));
+  hideBigString();
+
+  while (tuningRun.running && tuningRun.step < STAGE1_STEPS.length){
+    const step = STAGE1_STEPS[tuningRun.step];
+    setTickerNote(step.note);
+
+    const start = performance.now();
+    let shown = false;
+    let ok = false;
+
+    while (tuningRun.running){
+      const t = performance.now();
+      const p = (t - start) / tuningRun.duration;
+      const clamped = Math.max(0, Math.min(1, p));
+
+      if (tickerTrack){
+        const x = 110 + (-40 - 110) * clamped; // 110% -> -40%
+        tickerTrack.style.transform = `translateX(${x}%)`;
+      }
+
+      if (!shown && clamped >= tuningRun.cueShowAt){
+        showBigString(step, "ready");
+        shown = true;
+      }
+
+      if (clamped >= tuningRun.cueJudgeAt){
+        showBigString(step, "judge");
+        ok = await judgeStage1TargetPC(step.pc, Math.max(420, tuningRun.duration*(1 - tuningRun.cueJudgeAt)));
+        break;
+      }
+
+      if (clamped >= 1) break;
+      await new Promise(r => requestAnimationFrame(()=>r()));
+    }
+
+    if (!tuningRun.running) break;
+
+    if (ok){
+      setTuneOK(step.key);
+      showBurst("OK!!", false);
+      hideBigString();
+      tuningRun.step += 1;
+      await new Promise(r => setTimeout(r, 450));
+    }else{
+      showBurst("MISS!", true);
+      await new Promise(r => setTimeout(r, 650));
+    }
+  }
+
+  if (tuningRun.running && tuningRun.step >= STAGE1_STEPS.length){
+    showBurst("CLEAR!", false);
+    state.stage = 2;
+    applyStage();
+    render();
+  }
+  stopTuningFlow();
 }
 
 function passTuningAll(){
@@ -241,6 +388,10 @@ function passTuningAll(){
     el.classList.add("ok");
   });
   showBurst("OK!!", false);
+  // TESTで全OK → STAGE2へ
+  state.stage = 2;
+  applyStage();
+  render();
 }
 
 function render(){
@@ -294,6 +445,7 @@ if (stageBtn){
     if (state.stage === 2) render();
   });
 }
+if (tuneStartBtn){ tuneStartBtn.addEventListener("click", () => runTuningFlow()); }
 if (tuneTestBtn){ tuneTestBtn.addEventListener("click", () => passTuningAll()); }
 if (tuneResetBtn){ tuneResetBtn.addEventListener("click", () => resetTuning()); }
 

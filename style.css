@@ -664,3 +664,77 @@ body{
   .tuneCard{ padding: 10px 10px; }
   .tuneNote{ font-size: 24px; }
 }
+
+
+/* v20b stage1 ticker */
+.ticker{
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.14);
+  border-radius: 18px;
+  padding: 10px 10px;
+  overflow:hidden;
+  position: relative;
+}
+.ticker::after{
+  content:"";
+  position:absolute;
+  left: 10px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 999px;
+  background: rgba(255,232,72,0.35);
+  box-shadow: 0 0 18px rgba(255,232,72,0.20);
+}
+.ticker__track{
+  will-change: transform;
+  transform: translateX(110%);
+}
+.ticker__code{
+  display:inline-block;
+  font-size: 26px;
+  font-weight: 1000;
+  letter-spacing: 2px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(124,247,255,0.18);
+  background: rgba(10,18,40,0.35);
+  text-shadow: 0 0 18px rgba(124,247,255,0.20);
+}
+
+.bigString{
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.16);
+  border-radius: 22px;
+  padding: 12px 12px;
+  display:flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.bigString__label{
+  font-size: 13px;
+  font-weight: 1000;
+  opacity: 0.9;
+}
+.bigString__note{
+  font-size: 44px;
+  font-weight: 1000;
+  letter-spacing: 2px;
+  text-shadow: 0 0 22px rgba(255,232,72,0.22);
+}
+.bigString__hint{
+  font-size: 12px;
+  font-weight: 1000;
+  opacity: 0.85;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.18);
+}
+
+@media (max-height: 760px){
+  .ticker{ padding: 8px 8px; }
+  .ticker__code{ font-size: 22px; padding: 5px 12px; }
+  .bigString__note{ font-size: 38px; }
+}
