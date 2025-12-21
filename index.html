@@ -59,6 +59,34 @@
           </div>
         </div>
 
+        
+        <div class="stage1Panel" id="stage1Panel" hidden>
+          <div class="ticker" id="ticker" aria-label="code ticker">
+            <div class="ticker__track" id="tickerTrack">
+              <span class="ticker__code" id="tickerCode">G</span>
+            </div>
+          </div>
+
+          <div class="bigString" id="bigString" hidden>
+            <div class="bigString__label" id="bigStringLabel">4弦</div>
+            <div class="bigString__note" id="bigStringNote">G</div>
+            <div class="bigString__hint" id="bigStringHint">合せて！</div>
+          </div>
+
+          <div class="tuneGrid" role="list">
+            <div class="tuneCard" role="listitem"><div class="tuneStr">4弦</div><div class="tuneNote">G</div><div class="tuneStatus" id="tune4">待機</div></div>
+            <div class="tuneCard" role="listitem"><div class="tuneStr">3弦</div><div class="tuneNote">C</div><div class="tuneStatus" id="tune3">待機</div></div>
+            <div class="tuneCard" role="listitem"><div class="tuneStr">2弦</div><div class="tuneNote">E</div><div class="tuneStatus" id="tune2">待機</div></div>
+            <div class="tuneCard" role="listitem"><div class="tuneStr">1弦</div><div class="tuneNote">A</div><div class="tuneStatus" id="tune1">待機</div></div>
+          </div>
+
+          <div class="tuneActions">
+            <button class="chip" id="tuneStartBtn">START（流れる）</button>
+            <button class="chip" id="tuneTestBtn">TEST（どんな音でもOK）</button>
+            <button class="chip" id="tuneResetBtn">リセット</button>
+          </div>
+        </div>
+
         <div class="fretboardWrap soft" id="fretWrap">
           <div class="fretboard" id="fretboard" aria-label="Fretboard"></div>
         </div>
