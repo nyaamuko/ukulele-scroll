@@ -9,7 +9,6 @@
 </head>
 <body>
   <div id="app" class="app">
-    <!-- Top HUD (comic) -->
     <header class="hud">
       <div class="hud__left">
         <button id="btnHome" class="chip chip--green" title="最初へ">⟵</button>
@@ -35,24 +34,14 @@
       </div>
     </header>
 
-    <!-- Stage -->
     <main class="stage">
-      <!-- Fretboard (left) -->
       <section class="board" aria-label="フレットと弦">
-        <div class="board__label">kanech</div>
-
-        <div class="strings" id="strings">
-          <!-- injected -->
-        </div>
-
-        <div class="frets" id="frets" aria-hidden="true">
-          <!-- injected -->
-        </div>
-
+        <div class="board__label">Ukulele</div>
+        <div class="strings" id="strings"></div>
+        <div class="frets" id="frets" aria-hidden="true"></div>
         <div id="targetPuck" class="puck" aria-hidden="true">★</div>
       </section>
 
-      <!-- Tuner circle (right) -->
       <section class="tuner" aria-label="チューナー">
         <div class="tuner__ring">
           <div class="tuner__face">
@@ -71,13 +60,12 @@
             </div>
 
             <div class="hintRow">
-              <span class="hint hint--left">低い</span>
+              <span class="hint">低い</span>
               <span class="hint hint--mid">OK</span>
-              <span class="hint hint--right">高い</span>
+              <span class="hint">高い</span>
             </div>
 
             <button id="btnMic" class="bigBtn">Tap to Start</button>
-
             <div id="statusText" class="status">マイクを開始してください</div>
           </div>
         </div>

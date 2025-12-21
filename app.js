@@ -1,9 +1,18 @@
-// Ukulele Scroll - Comic Tuning (G C E A) - root deploy files
-// Keep deploy flow the same (index.html / styles.css / app.js at repo root).
+// Ukulele Scroll v3 - Comic Tuning
+// Requirements addressed:
+// - iPhone: 1-page layout (no scroll) handled by CSS overflow:hidden + responsive sizing
+// - Fret spacing wider: 16 -> 8 frets (CSS + buildFrets count)
+// - String spacing wider: row-gap added in CSS
+// - Order: Top to bottom = 4,3,2,1 string (G,C,E,A) with labels
 
-const STRINGS = ["G","C","E","A"];
-const STORAGE_KEY = "ukulele_scroll_tuner_v2";
+const STRINGS = [
+  {name:"G", label:"4弦 G"},
+  {name:"C", label:"3弦 C"},
+  {name:"E", label:"2弦 E"},
+  {name:"A", label:"1弦 A"},
+];
 
+const STORAGE_KEY = "ukulele_scroll_tuner_v3";
 const $ = (id) => document.getElementById(id);
 
 const hudStep = $("hudStep");
@@ -45,9 +54,12 @@ function loadState(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) throw new Error("empty");
     const s = JSON.parse(raw);
+    const done = s.done || {};
     return {
       lowG: !!s.lowG,
-      done: s.done || {G:false,C:false,E:false,A:false},
+      done: {
+        G: !!done.G, C: !!done.C, E: !!done.E, A: !!done.A
+      },
       idx: typeof s.idx === "number" ? s.idx : 0,
     };
   }catch(e){
@@ -60,8 +72,9 @@ function saveState(){
 }
 
 function buildFrets(){
+  // Wider spacing: 8 frets
   fretsEl.innerHTML = "";
-  for (let i=0;i<16;i++){
+  for (let i=0;i<8;i++){
     const d = document.createElement("div");
     d.className = "fret";
     fretsEl.appendChild(d);
@@ -73,11 +86,11 @@ function buildStrings(){
   STRINGS.forEach((s, i) => {
     const row = document.createElement("div");
     row.className = "stringRow";
-    row.dataset.string = s;
+    row.dataset.string = s.name;
 
     const badge = document.createElement("div");
     badge.className = "stringBadge";
-    badge.textContent = s;
+    badge.textContent = s.label;
 
     const line = document.createElement("div");
     line.className = "stringLine";
@@ -103,19 +116,18 @@ function setStatus(text, kind){
 }
 
 function setNeedleByCents(cents){
-  // Map cents -50..+50 to degrees -45..+45
   const clamped = Math.max(-50, Math.min(50, cents));
   const deg = (clamped / 50) * 45;
   needle.style.transform = `rotate(${deg}deg)`;
 }
 
 function updateUI(persist=false){
-  const target = STRINGS[idx];
+  const target = STRINGS[idx].name;
 
   hudStep.textContent = `/${idx+1}`;
 
   btnPrev.disabled = idx <= 0;
-  btnNext.disabled = true; // only enabled on OK
+  btnNext.disabled = true;
 
   toggleLowG.checked = state.lowG;
   rangeBadge.textContent = state.lowG ? "Low G" : "High G";
@@ -123,7 +135,7 @@ function updateUI(persist=false){
   targetBadge.textContent = target;
 
   [...document.querySelectorAll(".stringRow")].forEach((row, i) => {
-    const s = STRINGS[i];
+    const s = STRINGS[i].name;
     row.classList.toggle("stringRow--active", i === idx);
     row.classList.toggle("stringRow--done", !!state.done[s]);
   });
@@ -166,7 +178,6 @@ async function startMic(){
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
     analyser.smoothingTimeConstant = 0.0;
-
     source.connect(analyser);
 
     btnMic.disabled = true;
@@ -196,7 +207,7 @@ function stopAudio(){
 }
 
 function markOk(){
-  const target = STRINGS[idx];
+  const target = STRINGS[idx].name;
   state.done[target] = true;
   saveState();
 
@@ -241,7 +252,7 @@ function startLoop(){
     currentNote.textContent = note.replace("#","♯");
     freqText.textContent = `${freq.toFixed(1)} Hz`;
 
-    const target = STRINGS[idx];
+    const target = STRINGS[idx].name;
     const cents = centsToNearestTarget(freq, target);
     smoothedCents = smoothedCents * (1 - smoothing) + cents * smoothing;
     setNeedleByCents(smoothedCents);
@@ -270,7 +281,7 @@ function startLoop(){
   tick();
 }
 
-/** Autocorrelation pitch detection (simple) */
+// ---- pitch detection ----
 function autoCorrelate(buf, sampleRate){
   let rms = 0;
   for (let i=0;i<buf.length;i++){
@@ -374,17 +385,10 @@ function centsToNearestTarget(freq, targetName){
 // events
 btnMic.addEventListener("click", async () => {
   if (!micStream) await startMic();
-  else {
-    resetAll();
-    await startMic();
-  }
+  else { resetAll(); await startMic(); }
 });
-btnPrev.addEventListener("click", () => {
-  if (idx > 0){ idx -= 1; lastGoodAt = 0; smoothedCents = 0; updateUI(true); }
-});
-btnNext.addEventListener("click", () => {
-  if (idx < STRINGS.length-1){ idx += 1; lastGoodAt = 0; smoothedCents = 0; updateUI(true); }
-});
+btnPrev.addEventListener("click", () => { if (idx > 0){ idx -= 1; lastGoodAt = 0; smoothedCents = 0; updateUI(true);} });
+btnNext.addEventListener("click", () => { if (idx < STRINGS.length-1){ idx += 1; lastGoodAt = 0; smoothedCents = 0; updateUI(true);} });
 btnReset.addEventListener("click", resetAll);
 btnHome.addEventListener("click", () => { idx = 0; lastGoodAt = 0; smoothedCents = 0; updateUI(true); });
 toggleLowG.addEventListener("change", () => { state.lowG = toggleLowG.checked; saveState(); updateUI(false); });
