@@ -3,127 +3,86 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0f14" />
-  <title>Ukeflow Tuner MVP</title>
+  <meta name="theme-color" content="#8fd3ff" />
+  <title>Ukulele Scroll - Tuning</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div id="app" class="app">
-    <!-- Header -->
-    <header class="topbar">
-      <button id="btnBack" class="icon-btn" aria-label="戻る" title="戻る">←</button>
-      <div class="topbar__title" id="topTitle">チューニング</div>
-      <button id="btnSettings" class="icon-btn" aria-label="設定" title="設定">⚙</button>
+    <!-- Top HUD (comic) -->
+    <header class="hud">
+      <div class="hud__left">
+        <button id="btnHome" class="chip chip--green" title="最初へ">⟵</button>
+        <div class="hud__title">
+          <span class="tag">チューニング</span>
+          <span id="hudStep" class="step">/1</span>
+        </div>
+      </div>
+
+      <div class="hud__center">
+        <div class="nav">
+          <button id="btnPrev" class="chip chip--blue" title="前の弦">←</button>
+          <button id="btnNext" class="chip chip--blue" title="次の弦" disabled>→</button>
+        </div>
+      </div>
+
+      <div class="hud__right">
+        <label class="chip chip--pink toggle">
+          <input id="toggleLowG" type="checkbox" />
+          <span>Low G</span>
+        </label>
+        <button id="btnReset" class="chip chip--orange" title="リセット">↻</button>
+      </div>
     </header>
 
-    <!-- Screens -->
-    <main class="main">
-      <!-- HOME -->
-      <section id="screenHome" class="screen screen--active" role="region" aria-label="チューニング開始">
-        <div class="card">
-          <h1 class="h1">チューニング</h1>
-          <p class="p">まずは <b>G → C → E → A</b> の順に1本ずつ合わせます。</p>
+    <!-- Stage -->
+    <main class="stage">
+      <!-- Fretboard (left) -->
+      <section class="board" aria-label="フレットと弦">
+        <div class="board__label">kanech</div>
 
-          <div class="row">
-            <label class="toggle">
-              <input id="toggleLowGHome" type="checkbox" />
-              <span class="toggle__ui"></span>
-              <span class="toggle__label">Low-G</span>
-            </label>
-            <div class="hint">※ 初期は High-G（一般的）です</div>
-          </div>
-
-          <div class="grid4" id="stringCards">
-            <!-- cards injected -->
-          </div>
-
-          <div class="actions">
-            <button id="btnStartSequence" class="btn btn--primary">はじめる（順番に）</button>
-            <button id="btnReset" class="btn btn--ghost">リセット</button>
-          </div>
-
-          <div class="footnote">
-            マイクが必要です。<br>
-            iPhoneは初回に許可が出ます（拒否した場合は設定から再許可してください）。
-          </div>
+        <div class="strings" id="strings">
+          <!-- injected -->
         </div>
+
+        <div class="frets" id="frets" aria-hidden="true">
+          <!-- injected -->
+        </div>
+
+        <div id="targetPuck" class="puck" aria-hidden="true">★</div>
       </section>
 
-      <!-- PLAY -->
-      <section id="screenPlay" class="screen" role="region" aria-label="チューニング中">
-        <div class="card card--tight">
-          <div class="play-head">
-            <div class="play-head__left">
-              <div class="label">ターゲット</div>
-              <div class="target" id="targetLabel">G</div>
+      <!-- Tuner circle (right) -->
+      <section class="tuner" aria-label="チューナー">
+        <div class="tuner__ring">
+          <div class="tuner__face">
+            <div class="tuner__top">
+              <div class="badge" id="targetBadge">G</div>
+              <div class="badge badge--sub" id="rangeBadge">High G</div>
             </div>
-            <div class="play-head__right">
-              <label class="toggle toggle--small">
-                <input id="toggleLowGPlay" type="checkbox" />
-                <span class="toggle__ui"></span>
-                <span class="toggle__label">Low-G</span>
-              </label>
+
+            <div class="tuner__note" id="currentNote">--</div>
+            <div class="tuner__freq" id="freqText">-- Hz</div>
+
+            <div class="arc">
+              <div class="arc__ticks"></div>
+              <div class="arc__center"></div>
+              <div class="arc__needle" id="needle"></div>
             </div>
-          </div>
 
-          <div class="noteBox">
-            <div class="noteBox__label">いまの音</div>
-            <div class="noteBox__note" id="currentNote">--</div>
-            <div class="noteBox__sub" id="freqText">-- Hz</div>
-          </div>
-
-          <div class="meter" aria-label="チューナーメーター">
-            <div class="meter__track"></div>
-            <div class="meter__center"></div>
-            <div class="meter__okzone"></div>
-            <div class="meter__needle" id="needle"></div>
-            <div class="meter__labels">
-              <span>低い</span>
-              <span>OK</span>
-              <span>高い</span>
+            <div class="hintRow">
+              <span class="hint hint--left">低い</span>
+              <span class="hint hint--mid">OK</span>
+              <span class="hint hint--right">高い</span>
             </div>
-          </div>
 
-          <div class="status" id="statusText">Tap to Start</div>
+            <button id="btnMic" class="bigBtn">Tap to Start</button>
 
-          <div class="actions actions--stack">
-            <button id="btnMic" class="btn btn--primary">録音を開始（Tap to Start）</button>
-            <div class="row row--between">
-              <button id="btnHelp" class="btn btn--ghost">ヘルプ</button>
-              <button id="btnRetry" class="btn btn--ghost">やり直し</button>
-              <button id="btnNext" class="btn btn--ghost" disabled>次へ</button>
-            </div>
+            <div id="statusText" class="status">マイクを開始してください</div>
           </div>
-
-          <div class="help" id="helpBox" hidden>
-            <div class="help__title">合わせ方のコツ</div>
-            <ul class="help__list">
-              <li>弦を1本だけ、はっきり鳴らしてください。</li>
-              <li>針が<b>真ん中</b>に来るようにペグを回します。</li>
-              <li>左（低い）なら少し上げる／右（高い）なら少し下げる。</li>
-              <li>OKは<b>約0.5秒</b>安定したら出ます。</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- SUMMARY -->
-      <section id="screenSummary" class="screen" role="region" aria-label="完了">
-        <div class="card">
-          <h1 class="h1">完了！</h1>
-          <p class="p">4弦すべてOKになりました。</p>
-          <div class="grid4 grid4--summary" id="summaryCards"></div>
-          <div class="actions">
-            <button id="btnToHome" class="btn btn--primary">もう一回チューニング</button>
-            <button id="btnToPractice" class="btn btn--ghost" disabled>コード練習へ（次）</button>
-          </div>
-          <div class="footnote">※ 次フェーズ（コード練習）は次のステップで追加します。</div>
         </div>
       </section>
     </main>
-
-    <!-- Bottom Safe Area -->
-    <div class="safe-bottom"></div>
   </div>
 
   <script src="./app.js"></script>
