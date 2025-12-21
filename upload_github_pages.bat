@@ -1,90 +1,137 @@
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
-title GitHub Pages アップロード（日時入り自動push）
+title GitHub Pages アップロード（Ukeflow Tuner）
 
 REM ==========================================
-REM  設定（通常は変更不要）
+REM  設定（必要ならここだけ変更）
 REM ==========================================
 set "REPO_URL=https://github.com/nyaamuko/ukulele-scroll.git"
 set "BRANCH=main"
+set "PAGES_URL=https://nyaamuko.github.io/ukulele-scroll/"
+
+REM 公開したいファイルが入っているフォルダ名（このBATと同じ階層に置く）
+set "SRC_DIR=ukeflow_tuner_mvp"
+
+REM GitHub Pages の公開先（どちらか）
+REM  - docs フォルダ運用なら docs
+REM  - ルート運用なら root
+REM 自動判定：docs フォルダが存在する場合 docs に出す。無ければ root に出す。
+set "DEST_MODE=AUTO"
 
 echo ==========================================
-echo   GitHub Pages アップロード
+echo   GitHub Pages アップロード（Ukeflow Tuner）
 echo ==========================================
 echo.
 
-REM このBATが置いてあるフォルダへ移動
+REM ▼ BATがあるフォルダへ移動（= リポジトリ直下想定）
 cd /d "%~dp0"
+echo [INFO] Working Dir: %cd%
+echo.
 
-REM index.html チェック
-if not exist "index.html" (
-  echo [ERROR] index.html が見つかりません。
-  echo BATは index.html と同じフォルダに置いてください。
-  pause
-  exit /b 1
-)
-
-REM Git チェック
+REM ▼ Git確認
 where git >nul 2>nul
-if errorlevel 1 (
-  echo [ERROR] Git が見つかりません。
-  echo https://git-scm.com/download/win
+if %errorlevel% neq 0 (
+  echo [ERROR] Git が見つかりません。Git for Windows を入れてください。
   pause
   exit /b 1
 )
 
-REM ===== 日時取得（YYYY-MM-DD HH:MM）=====
-for /f "tokens=1-3 delims=/ " %%a in ("%date%") do (
-  set Y=%%a
-  set M=%%b
-  set D=%%c
-)
-for /f "tokens=1-2 delims=: " %%a in ("%time%") do (
-  set H=%%a
-  set Min=%%b
-)
-if "%H:~0,1%"==" " set H=0%H:~1,1%
-
-set "COMMIT_MSG=update %Y%-%M%-%D% %H%:%Min%"
-
-REM ===== Git 初期化（初回のみ）=====
+REM ▼ リポジトリ確認（なければクローン）
 if not exist ".git" (
-  echo [STEP] git init
-  git init
-  git branch -M %BRANCH%
+  echo [INFO] .git が無いのでクローンします...
+  git clone "%REPO_URL%" .
+  if %errorlevel% neq 0 (
+    echo [ERROR] clone に失敗しました。
+    pause
+    exit /b 1
+  )
 )
 
-REM ===== origin 設定 =====
-git remote get-url origin >nul 2>nul
-if errorlevel 1 (
-  echo [STEP] remote origin を追加
-  git remote add origin "%REPO_URL%"
-)
-
-REM ===== 変更チェック =====
-git status --porcelain > "%temp%\__gitstat.txt"
-for %%F in ("%temp%\__gitstat.txt") do if %%~zF==0 (
-  echo [OK] 変更なし。アップロード不要です。
-  del "%temp%\__gitstat.txt" >nul 2>nul
+REM ▼ ブランチ更新
+echo [STEP] fetch / checkout / pull ...
+git fetch --all
+git checkout %BRANCH%
+if %errorlevel% neq 0 (
+  echo [ERROR] checkout に失敗しました（%BRANCH%）。
   pause
-  exit /b 0
+  exit /b 1
 )
-del "%temp%\__gitstat.txt" >nul 2>nul
+git pull origin %BRANCH%
+if %errorlevel% neq 0 (
+  echo [ERROR] pull に失敗しました（認証が必要な場合があります）。
+  pause
+  exit /b 1
+)
 
-REM ===== add / commit / push =====
-echo [STEP] git add
+echo.
+echo [STEP] Source check ...
+if not exist "%SRC_DIR%\index.html" (
+  echo [ERROR] %SRC_DIR%\index.html が見つかりません。
+  echo        ukeflow_tuner_mvp.zip を解凍して
+  echo        このBATと同じ階層に %SRC_DIR% フォルダを置いてください。
+  pause
+  exit /b 1
+)
+
+REM ▼ 配置先判定
+set "DEST_DIR="
+if /I "%DEST_MODE%"=="AUTO" (
+  if exist "docs\" (
+    set "DEST_DIR=docs"
+  ) else (
+    set "DEST_DIR=."
+  )
+) else if /I "%DEST_MODE%"=="DOCS" (
+  set "DEST_DIR=docs"
+) else (
+  set "DEST_DIR=."
+)
+
+echo [INFO] Deploy Destination: %DEST_DIR%
+echo.
+
+REM ▼ 配置先フォルダがdocsなら作る
+if /I "%DEST_DIR%"=="docs" (
+  if not exist "docs\" mkdir "docs"
+)
+
+REM ▼ コピー（公開ルートへ）
+echo [STEP] Copy files ...
+copy /y "%SRC_DIR%\index.html" "%DEST_DIR%\index.html" >nul
+copy /y "%SRC_DIR%\styles.css" "%DEST_DIR%\styles.css" >nul
+copy /y "%SRC_DIR%\app.js" "%DEST_DIR%\app.js" >nul
+
+echo [INFO] Copied:
+echo   %SRC_DIR%\index.html  ->  %DEST_DIR%\index.html
+echo   %SRC_DIR%\styles.css  ->  %DEST_DIR%\styles.css
+echo   %SRC_DIR%\app.js      ->  %DEST_DIR%\app.js
+echo.
+
+REM ▼ 変更確認
+echo [STEP] git status ...
+git status
+
+REM ▼ add / commit / push
+for /f "tokens=1-3 delims=/ " %%a in ("%date%") do set "D=%%a%%b%%c"
+set "T=%time:~0,2%%time:~3,2%%time:~6,2%"
+set "T=%T: =0%"
+set "COMMIT_MSG=deploy tuner %D%_%T%"
+
+echo.
+echo [STEP] add ...
 git add -A
 
-echo [STEP] git commit
+echo [STEP] commit ...
 git commit -m "%COMMIT_MSG%"
+if %errorlevel% neq 0 (
+  echo [INFO] commit はスキップされました（変更なしの可能性）。
+)
 
-echo [STEP] git push
-git push -u origin %BRANCH%
-if errorlevel 1 (
-  echo.
-  echo [ERROR] push に失敗しました。
-  echo 初回は GitHub の認証画面が出ることがあります。
+echo [STEP] push ...
+git push origin %BRANCH%
+if %errorlevel% neq 0 (
+  echo [ERROR] push に失敗しました（認証が必要な場合があります）。
   pause
   exit /b 1
 )
@@ -92,9 +139,8 @@ if errorlevel 1 (
 echo.
 echo [SUCCESS] アップロード完了！
 echo Commit: %COMMIT_MSG%
+echo URL: %PAGES_URL%
 echo.
-echo iPhone で下記URLを更新してください：
-echo https://nyaamuko.github.io/ukulele-scroll/
-echo.
+echo ※ GitHub Pages の反映に 30秒〜数分かかることがあります。
 pause
 exit /b 0
