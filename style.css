@@ -738,3 +738,7 @@ body{
   .ticker__code{ font-size: 22px; padding: 5px 12px; }
   .bigString__note{ font-size: 38px; }
 }
+
+
+/* force hidden */
+[hidden]{ display:none !important; }

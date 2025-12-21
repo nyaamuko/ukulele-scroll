@@ -46,6 +46,8 @@ const micStatus = document.getElementById("micStatus");
 
 const phaseTitle = document.getElementById("phaseTitle");
 const phaseText = document.getElementById("phaseText");
+const stage2Prompt = document.getElementById("stage2Prompt");
+const stage2Controls = document.getElementById("stage2Controls");
 
 const burst = document.getElementById("burst");
 const burstText = document.getElementById("burstText");
@@ -221,13 +223,22 @@ function applyStage(){
   const is1 = (state.stage === 1);
   if (stage1Panel) stage1Panel.hidden = !is1;
   if (fretWrap) fretWrap.hidden = is1;
+
+  // stage2-only blocks
+  if (stage2Prompt) stage2Prompt.hidden = is1;
+  if (stage2Controls) stage2Controls.hidden = is1;
+
   if (stageBtn) stageBtn.textContent = is1 ? "STAGE2" : "STAGE1";
   const badge = document.querySelector(".badge");
   if (badge) badge.textContent = is1 ? "STAGE 1" : "STAGE 2";
+
   if (is1){
     if (phaseTitle) phaseTitle.textContent = "TUNING";
-    if (phaseText) phaseText.textContent = "4弦G / 3弦C / 2弦E / 1弦A を合わせよう";
+    if (phaseText) phaseText.textContent = "上のコードが左端に来たら、その音を鳴らしてね";
     if (timerValue) timerValue.textContent = "--";
+  }else{
+    // leaving stage1 -> stop any running flow
+    try{ stopTuningFlow(); }catch(_){}
   }
 }
 
@@ -442,7 +453,9 @@ if (stageBtn){
   stageBtn.addEventListener("click", () => {
     state.stage = (state.stage === 1) ? 2 : 1;
     applyStage();
-    if (state.stage === 2) render();
+    if (state.stage === 2) {
+      render();
+    }
   });
 }
 if (tuneStartBtn){ tuneStartBtn.addEventListener("click", () => runTuningFlow()); }
