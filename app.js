@@ -65,12 +65,30 @@ function setHUD(){
 }
 
 function showFloat(text){
+  // Safari互換：Web Animations未対応でも落ちないようにする
   floating.textContent = text;
-  floating.animate([
-    { opacity: 0, transform: "translateY(-10px)" },
-    { opacity: 1, transform: "translateY(0)" },
-    { opacity: 0, transform: "translateY(-10px)" },
-  ], { duration: 900, easing: "ease-out" });
+
+  try{
+    if (typeof floating.animate === "function"){
+      floating.animate([
+        { opacity: 0, transform: "translateY(-10px)" },
+        { opacity: 1, transform: "translateY(0)" },
+        { opacity: 0, transform: "translateY(-10px)" },
+      ], { duration: 900, easing: "ease-out" });
+      return;
+    }
+  }catch(e){
+    // ignore
+  }
+
+  // Fallback: simple fade via style + timeout
+  floating.style.opacity = "1";
+  floating.style.transform = "translateY(0)";
+  clearTimeout(showFloat._t);
+  showFloat._t = setTimeout(() => {
+    floating.style.opacity = "0";
+    floating.style.transform = "translateY(-8px)";
+  }, 700);
 }
 
 function buildLanes(){
