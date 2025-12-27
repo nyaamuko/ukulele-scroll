@@ -385,3 +385,43 @@ window.addEventListener("error", (e) => {
     floating.style.opacity = "1";
   }catch(_){}
 });
+
+
+const runEl = document.getElementById("run");
+function setRun(on){
+  if (!runEl) return;
+  runEl.textContent = on ? "ON" : "OFF";
+}
+window.__UKEFLOW = {
+  start: () => { try{ startGame(); }catch(e){ showFloat("START ERR"); console.error(e);} },
+  pause: () => { try{ togglePause(); }catch(e){ showFloat("PAUSE ERR"); console.error(e);} },
+  reset: () => { try{ resetGame(); }catch(e){ showFloat("RESET ERR"); console.error(e);} },
+};
+
+// override set in reset/start
+const _resetGame = resetGame;
+resetGame = function(){
+  _resetGame();
+  setRun(false);
+};
+const _startGame = startGame;
+startGame = function(){
+  _startGame();
+  setRun(true);
+};
+const _togglePause = togglePause;
+togglePause = function(){
+  _togglePause();
+  setRun(running && !paused);
+};
+
+let _tickCounter = 0;
+const _tick = tick;
+tick = function(ts){
+  _tick(ts);
+  // prove animation loop is running (update once per ~20 frames)
+  _tickCounter++;
+  if (runEl && (_tickCounter % 20 === 0)){
+    runEl.textContent = (running && !paused) ? ("ON " + Math.floor(songPosMs/1000)) : "OFF";
+  }
+};
