@@ -1,408 +1,355 @@
-// Ukulele Scroll v3 - Comic Tuning
-// Requirements addressed:
-// - iPhone: 1-page layout (no scroll) handled by CSS overflow:hidden + responsive sizing
-// - Fret spacing wider: 16 -> 8 frets (CSS + buildFrets count)
-// - String spacing wider: row-gap added in CSS
-// - Order: Top to bottom = 4,3,2,1 string (G,C,E,A) with labels
-
-const STRINGS = [
-  {name:"G", label:"4弦 G"},
-  {name:"C", label:"3弦 C"},
-  {name:"E", label:"2弦 E"},
-  {name:"A", label:"1弦 A"},
-];
-
-const STORAGE_KEY = "ukulele_scroll_tuner_v3";
+// Ukeflow DDR Chords (iPhone vertical practice UI)
 const $ = (id) => document.getElementById(id);
 
-const hudStep = $("hudStep");
-const btnPrev = $("btnPrev");
-const btnNext = $("btnNext");
+const laneGrid = $("laneGrid");
+const pads = $("pads");
+const floating = $("floating");
+
+const scoreEl = $("score");
+const comboEl = $("combo");
+const bpmEl = $("bpm");
+
+const btnStart = $("btnStart");
+const btnPause = $("btnPause");
 const btnReset = $("btnReset");
-const btnHome = $("btnHome");
-const toggleLowG = $("toggleLowG");
 
-const stringsEl = $("strings");
-const fretsEl = $("frets");
-const targetPuck = $("targetPuck");
+const courseSel = $("course");
+const speedRange = $("speed");
+const bpmInput = $("bpmInput");
+const windowInput = $("windowInput");
+const customProg = $("customProg");
 
-const targetBadge = $("targetBadge");
-const rangeBadge = $("rangeBadge");
-const currentNote = $("currentNote");
-const freqText = $("freqText");
-const needle = $("needle");
-const btnMic = $("btnMic");
-const statusText = $("statusText");
+const LANES = [
+  { key: "G", colorClass: "note--g", hint: "4弦(G)" },
+  { key: "C", colorClass: "note--c", hint: "3弦(C)" },
+  { key: "E", colorClass: "note--e", hint: "2弦(E)" },
+  { key: "A", colorClass: "note--a", hint: "1弦(A)" },
+];
 
-let state = loadState();
-let idx = state.idx ?? 0;
+const COURSES = {
+  gc: ["G","C"],
+  gcea: ["G","C","E","A"],
+  c_am_f_g: ["C","Am","F","G"],
+};
 
-let audioCtx = null;
-let analyser = null;
-let micStream = null;
+let running = false;
+let paused = false;
+
+let score = 0;
+let combo = 0;
+
 let rafId = null;
+let lastTs = 0;
 
-let lastGoodAt = 0;
-const goodHoldMs = 520;
-const okThresholdCents = 18;
+let notes = []; // {id, chord, laneIndex, y, targetTimeMs, travelMs, hit, el}
+let nextId = 1;
+let songPosMs = 0;
 
-let smoothedCents = 0;
-const smoothing = 0.22;
+let bpm = 90;
+let fallSpeed = 1.0;
+let hitWindowMs = 130;
+let beatMs = 60000 / bpm;
 
-function loadState(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) throw new Error("empty");
-    const s = JSON.parse(raw);
-    const done = s.done || {};
-    return {
-      lowG: !!s.lowG,
-      done: {
-        G: !!done.G, C: !!done.C, E: !!done.E, A: !!done.A
-      },
-      idx: typeof s.idx === "number" ? s.idx : 0,
-    };
-  }catch(e){
-    return { lowG:false, done:{G:false,C:false,E:false,A:false}, idx:0 };
-  }
-}
-function saveState(){
-  state.idx = idx;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+let prog = ["G","C","E","A"];
+let progIdx = 0;
+let spawnAheadBeats = 3.0;
+let spawnEveryBeats = 1.0;
+let nextSpawnBeat = 0;
+
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function setHUD(){
+  scoreEl.textContent = String(score);
+  comboEl.textContent = String(combo);
+  bpmEl.textContent = String(bpm);
 }
 
-function buildFrets(){
-  // Wider spacing: 8 frets
-  fretsEl.innerHTML = "";
-  for (let i=0;i<8;i++){
-    const d = document.createElement("div");
-    d.className = "fret";
-    fretsEl.appendChild(d);
-  }
+function showFloat(text){
+  floating.textContent = text;
+  floating.animate([
+    { opacity: 0, transform: "translateY(-10px)" },
+    { opacity: 1, transform: "translateY(0)" },
+    { opacity: 0, transform: "translateY(-10px)" },
+  ], { duration: 900, easing: "ease-out" });
 }
 
-function buildStrings(){
-  stringsEl.innerHTML = "";
-  STRINGS.forEach((s, i) => {
-    const row = document.createElement("div");
-    row.className = "stringRow";
-    row.dataset.string = s.name;
+function buildLanes(){
+  laneGrid.innerHTML = "";
+  LANES.forEach((l, i) => {
+    const lane = document.createElement("div");
+    lane.className = "lane";
+    lane.dataset.index = String(i);
 
-    const badge = document.createElement("div");
-    badge.className = "stringBadge";
-    badge.textContent = s.label;
+    const header = document.createElement("div");
+    header.className = "laneHeader";
 
-    const line = document.createElement("div");
-    line.className = "stringLine";
+    const label = document.createElement("div");
+    label.className = "laneLabel";
+    label.textContent = l.key;
 
-    row.appendChild(badge);
-    row.appendChild(line);
+    const hint = document.createElement("div");
+    hint.className = "laneHint";
+    hint.textContent = l.hint;
 
-    row.addEventListener("click", () => {
-      idx = i;
-      lastGoodAt = 0;
-      smoothedCents = 0;
-      updateUI(true);
+    header.appendChild(label);
+    header.appendChild(hint);
+    lane.appendChild(header);
+
+    lane.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      onHitLane(i);
     });
 
-    stringsEl.appendChild(row);
+    laneGrid.appendChild(lane);
   });
 }
 
-function setStatus(text, kind){
-  statusText.textContent = text;
-  statusText.classList.remove("status--good","status--warn","status--bad");
-  if (kind) statusText.classList.add(kind);
-}
-
-function setNeedleByCents(cents){
-  const clamped = Math.max(-50, Math.min(50, cents));
-  const deg = (clamped / 50) * 45;
-  needle.style.transform = `rotate(${deg}deg)`;
-}
-
-function updateUI(persist=false){
-  const target = STRINGS[idx].name;
-
-  hudStep.textContent = `/${idx+1}`;
-
-  btnPrev.disabled = idx <= 0;
-  btnNext.disabled = true;
-
-  toggleLowG.checked = state.lowG;
-  rangeBadge.textContent = state.lowG ? "Low G" : "High G";
-
-  targetBadge.textContent = target;
-
-  [...document.querySelectorAll(".stringRow")].forEach((row, i) => {
-    const s = STRINGS[i].name;
-    row.classList.toggle("stringRow--active", i === idx);
-    row.classList.toggle("stringRow--done", !!state.done[s]);
-  });
-
-  const activeRow = document.querySelector(`.stringRow[data-string="${target}"]`);
-  if (activeRow){
-    const rect = activeRow.getBoundingClientRect();
-    const boardRect = document.querySelector(".board").getBoundingClientRect();
-    const y = (rect.top + rect.height/2) - boardRect.top;
-    targetPuck.style.top = `${Math.max(80, Math.min(boardRect.height-40, y))}px`;
-  }
-
-  if (persist) saveState();
-}
-
-function resetAll(){
-  stopAudio();
-  state.done = {G:false,C:false,E:false,A:false};
-  idx = 0;
-  lastGoodAt = 0;
-  smoothedCents = 0;
-  currentNote.textContent = "--";
-  freqText.textContent = "-- Hz";
-  setNeedleByCents(0);
-  btnMic.disabled = false;
-  btnMic.textContent = "Tap to Start";
-  setStatus("マイクを開始してください", null);
-  updateUI(true);
-}
-
-async function startMic(){
-  if (audioCtx && micStream) return;
-  try{
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+function buildPads(){
+  pads.innerHTML = "";
+  LANES.forEach((l, i) => {
+    const p = document.createElement("div");
+    p.className = `pad pad--${i}`;
+    p.textContent = l.key;
+    p.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      onHitLane(i);
     });
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioCtx.createMediaStreamSource(micStream);
+    pads.appendChild(p);
+  });
+}
 
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
-    analyser.smoothingTimeConstant = 0.0;
-    source.connect(analyser);
+function resolveProgression(){
+  const v = courseSel.value;
+  if (v === "custom"){
+    const arr = customProg.value.split(",").map(s => s.trim()).filter(Boolean);
+    return arr.length ? arr : ["G","C","E","A"];
+  }
+  return COURSES[v] || ["G","C","E","A"];
+}
 
-    btnMic.disabled = true;
-    btnMic.textContent = "Listening…";
-    setStatus("Listening…（弦を鳴らしてね）", null);
+function chordToLaneIndex(chord){
+  const root = chord.replace(/[^A-G#]/g, "");
+  const base = (root.startsWith("G")) ? "G"
+            : (root.startsWith("C")) ? "C"
+            : (root.startsWith("E")) ? "E"
+            : (root.startsWith("A")) ? "A"
+            : null;
+  if (!base) return 3;
+  return LANES.findIndex(l => l.key === base);
+}
+
+function resetGame(){
+  stopLoop();
+  running = false;
+  paused = false;
+
+  score = 0;
+  combo = 0;
+
+  bpm = clamp(parseInt(bpmInput.value || "90", 10), 60, 200);
+  beatMs = 60000 / bpm;
+  fallSpeed = clamp(parseFloat(speedRange.value || "1.0"), 0.7, 1.8);
+  hitWindowMs = clamp(parseInt(windowInput.value || "130", 10), 60, 260);
+
+  prog = resolveProgression();
+  progIdx = 0;
+
+  notes.forEach(n => n.el?.remove());
+  notes = [];
+  nextId = 1;
+
+  songPosMs = 0;
+  nextSpawnBeat = 0;
+
+  btnPause.disabled = true;
+  btnPause.textContent = "⏸ PAUSE";
+  btnStart.disabled = false;
+
+  setHUD();
+  showFloat("READY!");
+}
+
+function startGame(){
+  if (running) return;
+  resetGame();
+  running = true;
+  paused = false;
+
+  btnPause.disabled = false;
+  btnStart.disabled = true;
+
+  showFloat("START!");
+  startLoop();
+}
+
+function togglePause(){
+  if (!running) return;
+  paused = !paused;
+  btnPause.textContent = paused ? "▶ RESUME" : "⏸ PAUSE";
+  if (!paused){
+    lastTs = performance.now();
     startLoop();
-  }catch(err){
-    console.error(err);
-    setStatus("マイク許可が必要です（Safari設定を確認）", "status--bad");
-    btnMic.disabled = false;
-    btnMic.textContent = "Tap to Start";
   }
 }
 
-function stopAudio(){
+function stopLoop(){
   if (rafId) cancelAnimationFrame(rafId);
   rafId = null;
-  if (audioCtx){
-    try{ audioCtx.close(); }catch(_){}
-  }
-  audioCtx = null;
-  analyser = null;
-  if (micStream){
-    micStream.getTracks().forEach(t => t.stop());
-  }
-  micStream = null;
-}
-
-function markOk(){
-  const target = STRINGS[idx].name;
-  state.done[target] = true;
-  saveState();
-
-  btnNext.disabled = false;
-  setStatus("OK！つぎ！", "status--good");
-
-  setTimeout(() => {
-    if (idx < STRINGS.length-1){
-      idx += 1;
-      lastGoodAt = 0;
-      smoothedCents = 0;
-      updateUI(true);
-    }else{
-      setStatus("4本ぜんぶOK！", "status--good");
-      btnMic.disabled = false;
-      btnMic.textContent = "もう一回やる？";
-      stopAudio();
-    }
-  }, 260);
+  lastTs = 0;
 }
 
 function startLoop(){
-  const buf = new Float32Array(analyser.fftSize);
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(tick);
+}
 
-  const tick = () => {
-    if (!analyser || !audioCtx) return;
-    analyser.getFloatTimeDomainData(buf);
+function spawnNote(chord, beatAt){
+  const laneIndex = chordToLaneIndex(chord);
+  const laneEl = laneGrid.children[laneIndex];
+  if (!laneEl) return;
 
-    const {freq, rms} = autoCorrelate(buf, audioCtx.sampleRate);
+  const el = document.createElement("div");
+  const laneClass = (LANES[laneIndex].key === "G") ? "note--g"
+                 : (LANES[laneIndex].key === "C") ? "note--c"
+                 : (LANES[laneIndex].key === "E") ? "note--e"
+                 : (LANES[laneIndex].key === "A") ? "note--a"
+                 : "note--other";
+  el.className = `note ${laneClass}`;
+  el.dataset.id = String(nextId);
+  el.innerHTML = `<div>${chord}</div><div class="noteSmall">tap</div>`;
+  laneEl.appendChild(el);
 
-    if (!freq || rms < 0.010){
-      currentNote.textContent = "--";
-      freqText.textContent = "-- Hz";
-      setNeedleByCents(0);
-      lastGoodAt = 0;
-      setStatus("（小さい）もっとはっきり鳴らしてね", "status--warn");
-      rafId = requestAnimationFrame(tick);
-      return;
-    }
+  const travelMs = beatMs * spawnAheadBeats / fallSpeed;
 
-    const note = freqToNote(freq).name;
-    currentNote.textContent = note.replace("#","♯");
-    freqText.textContent = `${freq.toFixed(1)} Hz`;
-
-    const target = STRINGS[idx].name;
-    const cents = centsToNearestTarget(freq, target);
-    smoothedCents = smoothedCents * (1 - smoothing) + cents * smoothing;
-    setNeedleByCents(smoothedCents);
-
-    const isNameOk = note.startsWith(target);
-    const isOk = isNameOk && Math.abs(smoothedCents) <= okThresholdCents;
-
-    if (isOk){
-      if (!lastGoodAt) lastGoodAt = performance.now();
-      const held = performance.now() - lastGoodAt;
-      setStatus(`OK判定… ${Math.min(100, Math.round(held / goodHoldMs * 100))}%`, "status--good");
-      if (held >= goodHoldMs){
-        markOk();
-        lastGoodAt = 0;
-      }
-    } else {
-      lastGoodAt = 0;
-      if (smoothedCents < -okThresholdCents) setStatus("低い（ちょい上げ）", "status--warn");
-      else if (smoothedCents > okThresholdCents) setStatus("高い（ちょい下げ）", "status--warn");
-      else setStatus("合わせ中…", null);
-    }
-
-    rafId = requestAnimationFrame(tick);
+  const note = {
+    id: nextId++,
+    chord,
+    laneIndex,
+    y: -70,
+    el,
+    targetTimeMs: beatAt * beatMs,
+    travelMs,
+    hit:false,
   };
-
-  tick();
+  notes.push(note);
 }
 
-// ---- pitch detection ----
-function autoCorrelate(buf, sampleRate){
-  let rms = 0;
-  for (let i=0;i<buf.length;i++){
-    const v = buf[i];
-    rms += v*v;
-  }
-  rms = Math.sqrt(rms / buf.length);
-  if (rms < 0.005) return {freq:null, rms};
-
-  const size = buf.length;
-  let mean = 0;
-  for (let i=0;i<size;i++) mean += buf[i];
-  mean /= size;
-
-  const x = new Float32Array(size);
-  for (let i=0;i<size;i++){
-    const w = 0.5 * (1 - Math.cos(2*Math.PI*i/(size-1)));
-    x[i] = (buf[i] - mean) * w;
-  }
-
-  const minFreq = 60;
-  const maxFreq = 1200;
-  const minLag = Math.floor(sampleRate / maxFreq);
-  const maxLag = Math.floor(sampleRate / minFreq);
-
-  let bestLag = -1;
-  let best = 0;
-
-  for (let lag=minLag; lag<=maxLag; lag++){
-    let sum = 0;
-    for (let i=0; i<size-lag; i++){
-      sum += x[i] * x[i+lag];
-    }
-    if (sum > best){
-      best = sum;
-      bestLag = lag;
-    }
-  }
-  if (bestLag === -1) return {freq:null, rms};
-
-  const lag = bestLag;
-  const c0 = corrAtLag(x, lag-1);
-  const c1 = corrAtLag(x, lag);
-  const c2 = corrAtLag(x, lag+1);
-  const denom = (2*c1 - c0 - c2);
-  let shift = 0;
-  if (denom !== 0) shift = (c2 - c0) / (2*denom);
-  const refinedLag = lag + shift;
-  const freq = sampleRate / refinedLag;
-
-  if (!isFinite(freq) || freq < minFreq || freq > maxFreq) return {freq:null, rms};
-  return {freq, rms};
+function judge(deltaMs){
+  const ad = Math.abs(deltaMs);
+  if (ad <= hitWindowMs * 0.45) return "PERFECT";
+  if (ad <= hitWindowMs * 0.85) return "GREAT";
+  if (ad <= hitWindowMs) return "OK";
+  return "MISS";
 }
-function corrAtLag(x, lag){
-  if (lag < 1) return 0;
-  let sum = 0;
-  for (let i=0; i<x.length-lag; i++){
-    sum += x[i] * x[i+lag];
-  }
-  return sum;
+
+function award(result){
+  if (result === "PERFECT"){ score += 300; combo += 1; showFloat("PERFECT✨"); }
+  else if (result === "GREAT"){ score += 200; combo += 1; showFloat("GREAT!"); }
+  else if (result === "OK"){ score += 120; combo += 1; showFloat("OK"); }
+  else { combo = 0; showFloat("MISS…"); }
+  setHUD();
 }
-function freqToNote(freq){
-  const noteNum = 69 + 12 * Math.log2(freq / 440);
-  const midi = Math.round(noteNum);
-  return { midi, name: midiToName(midi) };
-}
-function midiToName(midi){
-  const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const n = ((midi % 12) + 12) % 12;
-  return names[n];
-}
-function nameToMidi(name, octave){
-  const map = {"C":0,"C#":1,"D":2,"D#":3,"E":4,"F":5,"F#":6,"G":7,"G#":8,"A":9,"A#":10,"B":11};
-  const v = map[name];
-  if (v == null) return null;
-  return (octave + 1) * 12 + v;
-}
-function midiToFreq(midi){
-  return 440 * Math.pow(2, (midi - 69) / 12);
-}
-function centsToNearestTarget(freq, targetName){
-  const targets = [];
-  for (let octave=1; octave<=7; octave++){
-    const midi = nameToMidi(targetName, octave);
-    if (midi != null) targets.push(midi);
-  }
-  let bestCents = 0;
+
+function onHitLane(laneIndex){
+  if (!running || paused) return;
+
+  const nowMs = songPosMs;
+  let best = null;
   let bestAbs = Infinity;
-  for (const midi of targets){
-    const tf = midiToFreq(midi);
-    const cents = 1200 * Math.log2(freq / tf);
-    const abs = Math.abs(cents);
-    if (abs < bestAbs){
-      bestAbs = abs;
-      bestCents = cents;
+
+  for (const n of notes){
+    if (n.hit) continue;
+    if (n.laneIndex !== laneIndex) continue;
+    const delta = nowMs - n.targetTimeMs;
+    const ad = Math.abs(delta);
+    if (ad < bestAbs){
+      bestAbs = ad;
+      best = { n, delta };
     }
   }
-  return Math.max(-50, Math.min(50, bestCents));
+
+  if (!best){ award("MISS"); return; }
+
+  const res = judge(best.delta);
+  if (res === "MISS"){ award("MISS"); return; }
+
+  best.n.hit = true;
+  best.n.el.style.opacity = "0.25";
+  setTimeout(() => best.n.el.remove(), 80);
+  award(res);
 }
 
-// events
-btnMic.addEventListener("click", async () => {
-  if (!micStream) await startMic();
-  else { resetAll(); await startMic(); }
+function tick(ts){
+  if (!running) return;
+  if (paused){ stopLoop(); return; }
+
+  if (!lastTs) lastTs = ts;
+  const dt = ts - lastTs;
+  lastTs = ts;
+  songPosMs += dt;
+
+  const currentBeat = songPosMs / beatMs;
+  while (nextSpawnBeat <= currentBeat + spawnAheadBeats){
+    const chord = prog[progIdx % prog.length];
+    spawnNote(chord, nextSpawnBeat + spawnAheadBeats);
+    progIdx++;
+    nextSpawnBeat += spawnEveryBeats;
+  }
+
+  for (let i=notes.length-1; i>=0; i--){
+    const n = notes[i];
+    if (!n.el){ notes.splice(i,1); continue; }
+
+    const laneEl = laneGrid.children[n.laneIndex];
+    const laneH = laneEl.getBoundingClientRect().height;
+    const hitY = laneH - 90;
+
+    const timeToTarget = n.targetTimeMs - songPosMs;
+    const p = 1 - (timeToTarget / n.travelMs);
+    const y = (-70) + p * (hitY + 70);
+    n.y = y;
+
+    n.el.style.transform = `translateY(${y}px)`;
+
+    if (!n.hit && y > hitY + 46){
+      n.hit = true;
+      n.el.style.opacity = "0.15";
+      setTimeout(() => n.el.remove(), 120);
+      combo = 0;
+      setHUD();
+    }
+
+    if (n.hit && y > hitY + 80){
+      notes.splice(i,1);
+    }
+  }
+
+  rafId = requestAnimationFrame(tick);
+}
+
+btnStart.addEventListener("click", startGame);
+btnPause.addEventListener("click", togglePause);
+btnReset.addEventListener("click", resetGame);
+
+[bpmInput, speedRange, windowInput, customProg].forEach(el => {
+  el.addEventListener("change", () => {
+    bpm = clamp(parseInt(bpmInput.value || "90", 10), 60, 200);
+    beatMs = 60000 / bpm;
+    fallSpeed = clamp(parseFloat(speedRange.value || "1.0"), 0.7, 1.8);
+    hitWindowMs = clamp(parseInt(windowInput.value || "130", 10), 60, 260);
+    bpmEl.textContent = String(bpm);
+    if (running) showFloat("SET!");
+  });
 });
-btnPrev.addEventListener("click", () => { if (idx > 0){ idx -= 1; lastGoodAt = 0; smoothedCents = 0; updateUI(true);} });
-btnNext.addEventListener("click", () => { if (idx < STRINGS.length-1){ idx += 1; lastGoodAt = 0; smoothedCents = 0; updateUI(true);} });
-btnReset.addEventListener("click", resetAll);
-btnHome.addEventListener("click", () => { idx = 0; lastGoodAt = 0; smoothedCents = 0; updateUI(true); });
-toggleLowG.addEventListener("change", () => { state.lowG = toggleLowG.checked; saveState(); updateUI(false); });
-window.addEventListener("pagehide", () => stopAudio());
 
-// init
-function init(){
-  buildFrets();
-  buildStrings();
-  toggleLowG.checked = state.lowG;
-  currentNote.textContent = "--";
-  freqText.textContent = "-- Hz";
-  setNeedleByCents(0);
-  setStatus("マイクを開始してください", null);
-  updateUI(true);
-}
-init();
+// iOS double-tap zoom prevention
+let lastTouch = 0;
+document.addEventListener("touchend", (e) => {
+  const now = Date.now();
+  if (now - lastTouch <= 300) e.preventDefault();
+  lastTouch = now;
+}, { passive: false });
+
+buildLanes();
+buildPads();
+resetGame();
