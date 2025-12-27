@@ -26,12 +26,17 @@ const LANES = [
   { key: "A", colorClass: "note--a", hint: "1弦(A)" },
 ];
 
-function bindTap(el, handler){
-  // iOS互換：pointerdownが無効な環境でも動くように複数バインド
-  const h = (e) => { try{ e.preventDefault(); }catch(_){} handler(e); };
+function bindTap(el, handler, opts={}){
+  // iOS/PC互換：pointer/touch/clickを全部拾う
+  const h = (e) => {
+    try{
+      if (opts.preventDefault) e.preventDefault();
+    }catch(_){}
+    handler(e);
+  };
   el.addEventListener("pointerdown", h);
-  el.addEventListener("touchstart", h, { passive: false });
-  el.addEventListener("click", (e) => handler(e));
+  el.addEventListener("touchstart", h, { passive: !opts.preventDefault });
+  el.addEventListener("click", h);
 }
 
 const COURSES = {
@@ -425,3 +430,34 @@ tick = function(ts){
     runEl.textContent = (running && !paused) ? ("ON " + Math.floor(songPosMs/1000)) : "OFF";
   }
 };
+
+
+function hardWireButtons(){
+  const s = document.getElementById("btnStart");
+  const p = document.getElementById("btnPause");
+  const r = document.getElementById("btnReset");
+  if (s){
+    s.addEventListener("touchstart", () => window.__UKEFLOW && window.__UKEFLOW.start(), { passive: true });
+    s.addEventListener("click", () => window.__UKEFLOW && window.__UKEFLOW.start());
+  }
+  if (p){
+    p.addEventListener("touchstart", () => window.__UKEFLOW && window.__UKEFLOW.pause(), { passive: true });
+    p.addEventListener("click", () => window.__UKEFLOW && window.__UKEFLOW.pause());
+  }
+  if (r){
+    r.addEventListener("touchstart", () => window.__UKEFLOW && window.__UKEFLOW.reset(), { passive: true });
+    r.addEventListener("click", () => window.__UKEFLOW && window.__UKEFLOW.reset());
+  }
+}
+hardWireButtons();
+
+let __hb = null;
+function startHeartbeat(){
+  const runEl = document.getElementById("run");
+  if (__hb) clearInterval(__hb);
+  __hb = setInterval(() => {
+    if (!runEl) return;
+    if (running && !paused) runEl.textContent = "ON " + Math.floor(songPosMs/1000);
+  }, 500);
+}
+startHeartbeat();
