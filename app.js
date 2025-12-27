@@ -26,6 +26,14 @@ const LANES = [
   { key: "A", colorClass: "note--a", hint: "1弦(A)" },
 ];
 
+function bindTap(el, handler){
+  // iOS互換：pointerdownが無効な環境でも動くように複数バインド
+  const h = (e) => { try{ e.preventDefault(); }catch(_){} handler(e); };
+  el.addEventListener("pointerdown", h);
+  el.addEventListener("touchstart", h, { passive: false });
+  el.addEventListener("click", (e) => handler(e));
+}
+
 const COURSES = {
   gc: ["G","C"],
   gcea: ["G","C","E","A"],
@@ -113,8 +121,7 @@ function buildLanes(){
     header.appendChild(hint);
     lane.appendChild(header);
 
-    lane.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
+        bindTap(lane, () => onHitLane(i));
       onHitLane(i);
     });
 
@@ -128,8 +135,7 @@ function buildPads(){
     const p = document.createElement("div");
     p.className = `pad pad--${i}`;
     p.textContent = l.key;
-    p.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
+        bindTap(p, () => onHitLane(i));
       onHitLane(i);
     });
     pads.appendChild(p);
@@ -345,9 +351,9 @@ function tick(ts){
   rafId = requestAnimationFrame(tick);
 }
 
-btnStart.addEventListener("click", startGame);
-btnPause.addEventListener("click", togglePause);
-btnReset.addEventListener("click", resetGame);
+bindTap(btnStart, startGame);
+bindTap(btnPause, togglePause);
+bindTap(btnReset, resetGame);
 
 [bpmInput, speedRange, windowInput, customProg].forEach(el => {
   el.addEventListener("change", () => {
@@ -371,3 +377,11 @@ document.addEventListener("touchend", (e) => {
 buildLanes();
 buildPads();
 resetGame();
+
+
+window.addEventListener("error", (e) => {
+  try{
+    floating.textContent = "JSエラー: " + (e.message || "unknown");
+    floating.style.opacity = "1";
+  }catch(_){}
+});
