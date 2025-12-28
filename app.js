@@ -127,9 +127,6 @@ function buildLanes(){
     lane.appendChild(header);
 
         bindTap(lane, () => onHitLane(i));
-      onHitLane(i);
-    });
-
     laneGrid.appendChild(lane);
   });
 }
@@ -141,8 +138,6 @@ function buildPads(){
     p.className = `pad pad--${i}`;
     p.textContent = l.key;
         bindTap(p, () => onHitLane(i));
-      onHitLane(i);
-    });
     pads.appendChild(p);
   });
 }
@@ -279,18 +274,7 @@ function award(result){
   setHUD();
 }
 
-
-// FIX v3: visual tap feedback
-function flash(el){
-  if (!el) return;
-  el.classList.add("tapFlash");
-  setTimeout(() => el.classList.remove("tapFlash"), 120);
-}
 function onHitLane(laneIndex){
-  const laneEl = laneGrid && laneGrid.children ? laneGrid.children[laneIndex] : null;
-  const padEl  = pads && pads.children ? pads.children[laneIndex] : null;
-  flash(laneEl);
-  flash(padEl);
   if (!running || paused) return;
 
   const nowMs = songPosMs;
