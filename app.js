@@ -47,17 +47,21 @@ const CHORDS = {
 
 // コース（beatsがコード間隔）
 const COURSES = {
-  lemon_basic: [
-    { chord: "C",  beats: 2 },
-    { chord: "Am", beats: 2 },
-    { chord: "F",  beats: 2 },
-    { chord: "G",  beats: 2 },
+  gc: [
+    { chord: "G", beats: 2 },
+    { chord: "C", beats: 2 },
   ],
   gcea: [
+    { chord: "G", beats: 2 },
+    { chord: "C", beats: 2 },
+    { chord: "E", beats: 2 },
+    { chord: "A", beats: 2 },
+  ],
+  c_am_f_g: [
+    { chord: "C", beats: 2 },
     { chord: "Am", beats: 2 },
-    { chord: "G",  beats: 2 },
-    { chord: "F",  beats: 2 },
-    { chord: "C",  beats: 2 },
+    { chord: "F", beats: 2 },
+    { chord: "G", beats: 2 },
   ],
 };
 

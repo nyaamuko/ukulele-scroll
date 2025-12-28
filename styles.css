@@ -223,3 +223,97 @@ body{
   pointer-events:none;
   z-index: 9999;
 }
+
+/* === layout restore for index.html structure === */
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 10px 10px 6px;
+}
+
+.brand{ display:flex; align-items:baseline; gap:10px; }
+.brand .logo{ font-size: 22px; }
+.brand .title{ font-weight: 900; font-size: 20px; letter-spacing:.02em; }
+.brand .subtitle{ opacity:.75; font-weight: 700; }
+
+.hud{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.pill{
+  display:flex;
+  gap:8px;
+  align-items:baseline;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+.pill .k{ font-size: 12px; opacity:.75; font-weight:800; }
+.pill .v{ font-size: 16px; font-weight:900; }
+
+.main{
+  display:grid;
+  grid-template-columns: 1.2fr 0.9fr;
+  gap: 16px;
+  margin-top: 10px;
+}
+@media (max-width: 980px){
+  .main{ grid-template-columns: 1fr; }
+}
+
+.playfield{
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 14px 40px rgba(0,0,0,.35);
+  min-height: 620px;
+  position: relative;
+}
+
+.panel{
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 14px 40px rgba(0,0,0,.35);
+  min-height: 620px;
+}
+
+.panelCard{ display:flex; flex-direction:column; gap:12px; }
+.row{ display:flex; gap: 10px; }
+.row--tight{ gap: 12px; align-items:flex-end; flex-wrap:wrap; }
+
+.field{ display:flex; flex-direction:column; gap:6px; flex:1; }
+.field--full{ flex: 1 1 100%; }
+.field > span{ font-size: 12px; opacity:.75; font-weight:800; }
+.field input, .field select{
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.20);
+  color: rgba(255,255,255,.92);
+  padding: 0 12px;
+}
+
+.hintBox{
+  margin-top: 6px;
+  padding: 12px 12px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.16);
+  border: 1px dashed rgba(255,255,255,.14);
+}
+.hintTitle{ font-weight: 900; margin-bottom: 6px; }
+.hintList{ margin: 0; padding-left: 18px; opacity:.92; }
+
+.footer{
+  margin-top: 12px;
+  padding: 6px 10px 14px;
+  opacity: .72;
+}
+.small{ font-size: 12px; }
+
+/* (optional) reset button color used in index.html */
+.btn--orange{ background: rgba(255,190,120,.12); }
+
