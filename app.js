@@ -1,4 +1,4 @@
-// Ukeflow - v9 (コード単位で同時到達 / 指〇ドット / 指板っぽい弦+フレット)
+// Ukeflow - v10 (コード単位で同時到達 / 指〇ドット / 指板っぽい弦+フレット)
 // A: C→Am→F→G を「コード単位」で流す（コード間に間隔）
 //    ＝同じコード内の指は "同時" に判定ラインへ到達（フレット差は保持）
 // B: BOXではなく、弦の横線上を指〇が流れる（フィンガーボード風）
@@ -21,7 +21,6 @@ const btnReset = $("btnReset");
 
 const courseSel = $("course");
 const speedRange = $("speed");
-const beatsInput = $("beatsInput");
 const bpmInput = $("bpmInput");
 const windowInput = $("windowInput");
 const customProg = $("customProg");
@@ -36,12 +35,6 @@ const LANES = [
 
 const FINGERS = { I: "人", M: "中", R: "薬", P: "小" };
 
-function chordToClass(ch) {
-  // CSSで扱いやすいクラス名に
-  return "ch-" + String(ch || "").replace(/[^a-zA-Z0-9]+/g, "_");
-}
-
-
 // frets: [A,E,C,G]（0=開放, >0=押さえる）
 // fingers: [A,E,C,G]（I/M/R/P もしくは null）
 const CHORDS = {
@@ -49,42 +42,23 @@ const CHORDS = {
   C: { frets: [3, 0, 0, 0], fingers: ["R", null, null, null] }, // A3=薬
   Am: { frets: [0, 0, 0, 2], fingers: [null, null, null, "M"] }, // G2=中
   G: { frets: [2, 3, 2, 0], fingers: ["I", "R", "M", null] }, // A2=人 / E3=薬 / C2=中
-
-  // 追加（gcea用）
-  A: { frets: [0, 0, 1, 2], fingers: [null, null, "I", "M"] }, // C1=人 / G2=中
-  E: { frets: [2, 0, 4, 1], fingers: ["I", null, "R", "M"] }, // A2=人 / C4=薬 / G1=中
 };
 
 // ★コースは「コード名」と「拍数」を持つ（コード間の間隔がこのbeatsで決まる）
 const COURSES = {
-  // G → C（初心者）
-  gc: [
-    { chord: "G", beats: 2 },
-    { chord: "C", beats: 2 },
-  ],
-
-  // G → C → E → A（王道）
-  gcea: [
-    { chord: "G", beats: 2 },
-    { chord: "C", beats: 2 },
-    { chord: "E", beats: 2 },
-    { chord: "A", beats: 2 },
-  ],
-
-  // C → Am → F → G（定番）
-  c_am_f_g: [
-    { chord: "C", beats: 2 },
-    { chord: "Am", beats: 2 },
-    { chord: "F", beats: 2 },
-    { chord: "G", beats: 2 },
-  ],
-
-  // 互換（古いキー名の救済）
+  // 要望：C→Am→F→G（定番）
   lemon_basic: [
     { chord: "C", beats: 2 },
     { chord: "Am", beats: 2 },
     { chord: "F", beats: 2 },
     { chord: "G", beats: 2 },
+  ],
+  // 例
+  gcea: [
+    { chord: "Am", beats: 2 },
+    { chord: "G", beats: 2 },
+    { chord: "F", beats: 2 },
+    { chord: "C", beats: 2 },
   ],
 };
 
@@ -133,11 +107,11 @@ let beatMs = 60000 / bpm;
 const HIT_X = 26;
 
 // 見せたいフレット数（縦線を描く）
-const FRET_COUNT = 10;
+const FRET_COUNT = 9;
 const RIGHT_PADDING = 24;
 
 // 譜面（[{chord, beats}]）
-let scoreData = COURSES.gc.slice();
+let scoreData = COURSES.lemon_basic.slice();
 let stepIdx = 0;
 let nextSpawnBeat = 0;
 let spawnAheadBeats = 3.0;
@@ -191,9 +165,6 @@ function buildLanes() {
   LANES.forEach((l, i) => {
     const lane = document.createElement("div");
     lane.className = "lane lane--strip fretGrid";
-
-    // フレット縦線（1F〜10F 等間隔）: CSS上書きせずJSで背景サイズを調整
-    lane.style.backgroundSize = `calc((100% - 60px) / ${Math.max(1, FRET_COUNT - 1)}) 100%`;
     lane.dataset.index = String(i);
 
     const header = document.createElement("div");
@@ -219,75 +190,34 @@ function buildPads() {
   bindTap(str, () => strum(), { preventDefault: true });
   pads.appendChild(str);
 
-  const now = document.createElement("div");
-  now.className = "nowBox";
-  now.innerHTML = `<div class="nowLabel">NOW</div><div id="nowChord" class="nowChord">-</div>`;
-  pads.appendChild(now);
-
   const next = document.createElement("div");
   next.className = "nextBox";
   next.innerHTML = `<div class="nextLabel">NEXT</div><div id="nextChord" class="nextChord">-</div>`;
   pads.appendChild(next);
 }
 
-
-function setNowNextLabels() {
-  const nowEl = $("nowChord");
-  const nextEl = $("nextChord");
-  if (!nowEl && !nextEl) return;
-
-  // まだ判定されていないイベントのうち、一番近いものをNOW、その次をNEXT
-  const pending = chordEvents
-    .filter((ev) => ev && ev.tokens && ev.tokens.some((t) => !t.hit))
-    .sort((a, b) => a.targetTimeMs - b.targetTimeMs);
-
-  const nowChord = pending[0]?.chord || "-";
-  const nextChord = pending[1]?.chord || scoreData[stepIdx % scoreData.length]?.chord || "-";
-
-  if (nowEl) {
-    nowEl.textContent = nowChord;
-    nowEl.className = "nowChord " + chordToClass(nowChord);
-  }
-  if (nextEl) {
-    nextEl.textContent = nextChord;
-    nextEl.className = "nextChord " + chordToClass(nextChord);
-  }
-}
-
 function setNextChordLabel() {
   const el = $("nextChord");
   if (!el) return;
   const step = scoreData[stepIdx % scoreData.length];
-  const chord = step?.chord || "-";
-  el.textContent = chord;
-  el.className = "nextChord " + chordToClass(chord);
+  el.textContent = step?.chord || "-";
 }
 
 function resolveScore() {
-  const v = courseSel?.value || "gc";
+  const v = courseSel?.value || "lemon_basic";
 
-  // UI：コード間隔（beats）を一括調整（各コースの既定beatsを上書き）
-  const beatsUi = clamp(parseFloat(beatsInput?.value || "2"), 0.5, 16);
-
-  // 既存セレクトの value と一致するコース
-  if (COURSES[v]) {
-    return COURSES[v].map((s) => ({ chord: s.chord, beats: beatsUi }));
-  }
+  // 既存セレクトの value と一致しない場合もfallback
+  if (COURSES[v]) return COURSES[v].slice();
 
   if (v === "custom") {
     const arr = (customProg?.value || "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-
-    const steps = arr.map((ch) => ({ chord: ch, beats: beatsUi }));
-    return steps.length ? steps : COURSES.gc.map((s) => ({ chord: s.chord, beats: beatsUi }));
+    // beatsは一旦2固定（後でUIで beats 入れられるように拡張）
+    const steps = arr.map((ch) => ({ chord: ch, beats: 2 }));
+    return steps.length ? steps : COURSES.lemon_basic.slice();
   }
-
-  // 最後の保険
-  return COURSES.gc.map((s) => ({ chord: s.chord, beats: beatsUi }));
-}
-
 
   return COURSES.lemon_basic.slice();
 }
@@ -334,7 +264,6 @@ function resetGame() {
 
   setHUD();
   setNextChordLabel();
-  setNowNextLabels();
   showFloat("READY!");
 }
 
@@ -394,14 +323,11 @@ function spawnChordEvent(chord, beatAt) {
 
     const el = document.createElement("div");
     el.className = "fingerDot";
-    el.classList.add(chordToClass(chord));
-    el.dataset.chord = chord;
     el.innerHTML = `<span class="fingerChar">${FINGERS[finger] || "?"}</span>`;
     laneEl.appendChild(el);
 
     const laneW = laneEl.getBoundingClientRect().width;
-    const x1 = fretToX(laneEl, 1);
-    const startX = laneW + 80 + (targetX - x1);
+    const startX = laneW + 80;
     const targetX = fretToX(laneEl, fret);
 
     // 先読み分だけ飛ばして "同時に" 到達するように travelMs を共通化
@@ -497,7 +423,6 @@ function strum() {
 
   award(res);
   setNextChordLabel();
-  setNowNextLabels();
 }
 
 function tick(ts) {
@@ -525,7 +450,6 @@ function tick(ts) {
     stepIdx++;
     nextSpawnBeat += beats; // ★ここが「Cの後に間隔をあけてAm…」の正体
     setNextChordLabel();
-  setNowNextLabels();
   }
 
   // トークン移動（右→左） + 判定ライン付近で発光
@@ -574,7 +498,6 @@ function tick(ts) {
 
   // 判定ライン自体も「今弾いて」状態で発光
   if (laneGrid) laneGrid.classList.toggle("nowReady", nowReady);
-  setNowNextLabels();
 
   rafId = requestAnimationFrame(tick);
 }
@@ -585,7 +508,7 @@ bindTap(btnPause, togglePause);
 bindTap(btnReset, resetGame);
 
 // ---- settings ----
-[bpmInput, speedRange, windowInput, beatsInput, customProg, courseSel].forEach((el) => {
+[bpmInput, speedRange, windowInput, customProg, courseSel].forEach((el) => {
   if (!el) return;
   el.addEventListener("change", () => {
     bpm = clamp(parseInt(bpmInput?.value || "90", 10), 60, 200);
@@ -594,15 +517,12 @@ bindTap(btnReset, resetGame);
     hitWindowMs = clamp(parseInt(windowInput?.value || "140", 10), 60, 280);
     bpmEl.textContent = String(bpm);
 
-    // コース/間隔変更は停止中に即反映
+    // コース変更は停止中に即反映
     if (!running) {
       scoreData = resolveScore();
       stepIdx = 0;
       nextSpawnBeat = 0;
-      chordEvents = [];
-      tokens = [];
       setNextChordLabel();
-      setNowNextLabels();
     }
     showFloat("SET!");
   });
