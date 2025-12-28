@@ -410,3 +410,124 @@ body{
 .nextChord{ font-size: 20px; font-weight: 900; margin-top: 4px; }
 
 .tapFlash{ outline:3px solid rgba(255,255,255,.55); box-shadow: 0 0 0 6px rgba(80,200,255,.18); }
+
+/* === v8: フィンガーボード風（弦の横線 + フレット縦線） === */
+.laneGrid{
+  display:flex !important;
+  flex-direction:column !important;
+  gap: 14px !important;
+}
+
+/* レーンはBOX感を消して透明に */
+.lane.lane--strip{
+  position: relative;
+  height: 92px;
+  overflow: hidden;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* 弦の横線（各レーン中央に1本） */
+.lane.lane--strip::before{
+  content:"";
+  position:absolute;
+  left: 18px;
+  right: 12px;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,.28);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.12) inset;
+  pointer-events:none;
+}
+
+/* フレット縦線（等間隔） */
+.lane.fretGrid{
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.14) 1px, rgba(255,255,255,0) 1px);
+  background-size: calc((100% - 80px) / 10) 100%;
+  background-position: 44px 0;
+}
+
+/* 判定ライン（左端） */
+.lane.lane--strip::after{
+  content:"";
+  position:absolute;
+  left: 26px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255,255,255,.28);
+  box-shadow: 0 0 0 2px rgba(0,0,0,.14) inset;
+  pointer-events:none;
+}
+
+/* 「今弾いて」状態の時、判定ラインを光らせる */
+.laneGrid.nowReady .lane.lane--strip::after{
+  background: rgba(160,220,255,.65);
+  box-shadow: 0 0 14px rgba(120,210,255,.55);
+}
+
+/* 指〇ドット（弦の上を流す） */
+.fingerDot{
+  position:absolute;
+  top: 50%;
+  left: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(10,10,12,.78);
+  border: 2px solid rgba(255,255,255,.22);
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
+  z-index: 6;
+  user-select:none;
+  -webkit-user-select:none;
+  will-change: transform;
+}
+
+.fingerDot .fingerChar{
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+
+/* 判定ラインに来たら光る（今弾いて！） */
+.fingerDot.ready{
+  border-color: rgba(180,240,255,.9);
+  box-shadow: 0 0 0 6px rgba(80,200,255,.20), 0 0 20px rgba(80,200,255,.45);
+}
+
+/* 成功/失敗の残像 */
+.fingerDot.hit{ opacity: .35; }
+.fingerDot.miss{ opacity: .18; filter: grayscale(1); }
+
+/* STRUMボタン＆NEXT（見やすさ微調整） */
+.btn--strum{
+  flex: 1 1 auto;
+  min-height: 56px;
+  font-size: 18px;
+  border-radius: 16px;
+}
+.nextBox{
+  flex: 0 0 auto;
+  min-width: 130px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+}
+.nextLabel{ font-size: 12px; opacity: .75; }
+.nextChord{ font-size: 20px; font-weight: 900; margin-top: 4px; }
+
+/* タップ可視化 */
+.tapFlash{
+  outline:3px solid rgba(255,255,255,.55);
+  box-shadow: 0 0 0 6px rgba(80,200,255,.18);
+}
+
