@@ -587,9 +587,8 @@ body{
 
 
 /* ==============================
-   v11 frets-only
-   縦フレット表示（1F〜10F）
-   既存コード不変更・追記のみ
+   v12 frets + numbers (1F-10F)
+   CSS追記のみ / JS HTML 不変更
 ============================== */
 
 .lane {
@@ -600,16 +599,12 @@ body{
   content: "";
   position: absolute;
   top: 0;
-  left: 24px;           /* 左端 = 1F（HITライン回避） */
+  left: 24px;          /* 左端 = 1F */
   right: 0;
   bottom: 0;
   pointer-events: none;
-  z-index: 2;           /* 背景より上・指〇より下 */
-  background-image: repeating-linear-gradient(
-    to right,
-    rgba(255,255,255,0.45) 0px,
-    rgba(255,255,255,0.45) 1px,
-    transparent 1px,
-    transparent calc((100% - 24px) / 10)
-  );
+  z-index: 2;
+  background-image: url("data:image/svg+xml,%0A%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%201000%20100%27%20preserveAspectRatio%3D%27none%27%3E%0A%20%20%3Cstyle%3E%0A%20%20%20%20.n%20%7B%20fill%3A%20rgba%28255%2C255%2C255%2C0.75%29%3B%20font-size%3A%2012px%3B%20font-family%3A%20Arial%2C%20Helvetica%2C%20sans-serif%3B%20%7D%0A%20%20%20%20.l%20%7B%20stroke%3A%20rgba%28255%2C255%2C255%2C0.35%29%3B%20stroke-width%3A%201%3B%20%7D%0A%20%20%3C/style%3E%0A%20%20%3C%21--%20draw%2010%20frets%20--%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%274%27%20y%3D%2714%27%3E1F%3C/text%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%27100%27%20y1%3D%270%27%20x2%3D%27100%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%27104%27%20y%3D%2714%27%3E2F%3C/text%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%27200%27%20y1%3D%270%27%20x2%3D%27200%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%27204%27%20y%3D%2714%27%3E3F%3C/text%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%27300%27%20y1%3D%270%27%20x2%3D%27300%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%27304%27%20y%3D%2714%27%3E4F%3C/text%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%27400%27%20y1%3D%270%27%20x2%3D%27400%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%27404%27%20y%3D%2714%27%3E5F%3C/text%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%27500%27%20y1%3D%270%27%20x2%3D%27500%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%27504%27%20y%3D%2714%27%3E6F%3C/text%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%27600%27%20y1%3D%270%27%20x2%3D%27600%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%27604%27%20y%3D%2714%27%3E7F%3C/text%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%27700%27%20y1%3D%270%27%20x2%3D%27700%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%27704%27%20y%3D%2714%27%3E8F%3C/text%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%27800%27%20y1%3D%270%27%20x2%3D%27800%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%27804%27%20y%3D%2714%27%3E9F%3C/text%3E%0A%3Cline%20class%3D%27l%27%20x1%3D%27900%27%20y1%3D%270%27%20x2%3D%27900%27%20y2%3D%27100%27/%3E%0A%3Ctext%20class%3D%27n%27%20x%3D%27904%27%20y%3D%2714%27%3E10F%3C/text%3E%0A%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
 }
