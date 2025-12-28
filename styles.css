@@ -322,45 +322,91 @@ body{
 .small{font-size: 11px; opacity:.7}
 
 
-/* === v6: 横長レーンを縦に4本並べる（上から1弦→2弦→3弦→4弦） === */
+/* === v7: 横長レーンを縦に4本（1→2→3→4弦） === */
 .laneGrid{
   display:flex !important;
   flex-direction:column !important;
   gap: 12px !important;
 }
-
-/* 横長の枠（レーン） */
 .lane.lane--strip{
   position: relative;
-  height: 120px;           /* ここで各レーンの高さ調整 */
+  height: 110px;
   overflow: hidden;
 }
 
-/* レーン内の「当たりライン」（左側） */
+/* フレット縦線（等間隔） */
+.lane.fretGrid{
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.16) 1px, rgba(255,255,255,0) 1px);
+  background-size: calc((100% - 60px) / 8) 100%;
+  background-position: 44px 0;
+}
+
+/* 判定ライン */
 .lane.lane--strip::after{
   content:"";
   position:absolute;
-  left: 26px;              /* app.js の HIT_X と一致 */
+  left: 26px;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: rgba(255,255,255,.18);
-  box-shadow: 0 0 0 2px rgba(0,0,0,.18) inset;
+  background: rgba(255,255,255,.22);
   pointer-events:none;
 }
 
-/* ノーツ：縦位置を中央固定、横に流す（transformで translateY(-50%) を使う） */
-.note{
-  top: 50% !important;
-  will-change: transform;
-  z-index: 3;
+/* 指トークン */
+.fingerToken{
+  position:absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(10,10,12,.78);
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
+  z-index: 5;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.fingerToken .finger{
+  width: 34px;
+  height: 34px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 800;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.18);
+}
+.fingerToken .fret{
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  opacity: .9;
 }
 
-/* 色クラス（存在しない場合でも崩れない） */
-.note--a{}
-.note--e{}
-.note--c{}
-.note--g{}
+/* STRUMボタンとNEXT */
+.btn--strum{
+  flex: 1 1 auto;
+  min-height: 56px;
+  font-size: 18px;
+  border-radius: 16px;
+}
+.nextBox{
+  flex: 0 0 auto;
+  min-width: 120px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+}
+.nextLabel{ font-size: 12px; opacity: .75; }
+.nextChord{ font-size: 20px; font-weight: 900; margin-top: 4px; }
 
-/* tap feedback */
 .tapFlash{ outline:3px solid rgba(255,255,255,.55); box-shadow: 0 0 0 6px rgba(80,200,255,.18); }
