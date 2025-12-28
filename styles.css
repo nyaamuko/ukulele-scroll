@@ -1,23 +1,106 @@
-/* === v9: フィンガーボード（弦＋フレット1F〜10F）＋コード色＋NOW/NEXT === */
+/* Ukeflow base UI (restore) + v9 fretboard + chord colors */
 
-.laneGrid{
-  display:flex !important;
-  flex-direction:column !important;
-  gap: 14px !important;
+/* ===== base ===== */
+*{ box-sizing:border-box; }
+html,body{ height:100%; margin:0; }
+body{
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+  color: rgba(255,255,255,.92);
+  background: radial-gradient(1200px 700px at 30% 20%, rgba(120,140,255,.22), rgba(0,0,0,0) 60%),
+              radial-gradient(900px 700px at 70% 30%, rgba(0,255,210,.10), rgba(0,0,0,0) 55%),
+              linear-gradient(180deg, #0b1020, #05070e 70%);
+  overflow-x:hidden;
 }
 
-/* レーンは透明（BOX感を消す） */
+/* ===== layout (ids ベースで効くようにして崩れに強く) ===== */
+#app, .app{
+  width:min(1400px, calc(100vw - 24px));
+  margin: 14px auto;
+  display:grid;
+  grid-template-columns: 1.25fr 0.95fr;
+  gap: 16px;
+}
+
+#leftPanel, .leftPanel{
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 14px 40px rgba(0,0,0,.35);
+  min-height: 620px;
+}
+
+#rightPanel, .rightPanel{
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 14px 40px rgba(0,0,0,.35);
+  min-height: 620px;
+}
+
+/* mobile */
+@media (max-width: 980px){
+  #app, .app{ grid-template-columns: 1fr; }
+  #leftPanel, .leftPanel, #rightPanel, .rightPanel{ min-height:auto; }
+}
+
+/* ===== top bar / buttons (ある場合) ===== */
+.btn{
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.92);
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.btn:disabled{ opacity:.45; cursor:default; }
+.btn--green{ background: rgba(0,255,210,.14); }
+.btn--blue { background: rgba(120,170,255,.12); }
+.btn--gray { background: rgba(255,255,255,.07); }
+
+.tapFlash{
+  outline:3px solid rgba(255,255,255,.55);
+  box-shadow: 0 0 0 6px rgba(80,200,255,.18);
+}
+
+/* ===== game area ===== */
+#laneGrid, .laneGrid{
+  display:flex;
+  flex-direction:column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+/* lane header */
+.laneHeader{
+  position:absolute;
+  left: 6px;
+  top: 6px;
+  display:flex;
+  gap: 8px;
+  align-items:baseline;
+  z-index: 5;
+  pointer-events:none;
+}
+.laneLabel{ font-weight: 900; opacity:.95; }
+.laneHint{ font-size: 12px; opacity:.70; }
+
+/* ===== v9: fretboard lane ===== */
 .lane.lane--strip{
   position: relative;
   height: 92px;
   overflow: hidden;
   border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
+  background: rgba(0,0,0,.10);
+  border-radius: 18px;
 }
 
-/* 弦の横線 */
+/* string line */
 .lane.lane--strip::before{
   content:"";
   position:absolute;
@@ -30,17 +113,16 @@
   pointer-events:none;
 }
 
-/* フレット縦線（等間隔）※強制 */
+/* frets 1F〜10F (importantで負けない) */
 .lane.fretGrid{
   background-image:
     linear-gradient(to right, rgba(255,255,255,.18) 1px, rgba(255,255,255,0) 1px) !important;
   background-repeat: repeat !important;
-  /* (100% - 80px) を 11分割 ＝ 1F〜10Fが見える間隔 */
-  background-size: calc((100% - 80px) / 11) 100% !important;
+  background-size: calc((100% - 80px) / 11) 100% !important; /* 11分割で10本見える */
   background-position: 44px 0 !important;
 }
 
-/* 判定ライン（左端） */
+/* hit line */
 .lane.lane--strip::after{
   content:"";
   position:absolute;
@@ -51,14 +133,12 @@
   background: rgba(255,255,255,.28);
   pointer-events:none;
 }
-
-/* 「今弾いて」状態の時、判定ラインも光る */
 .laneGrid.nowReady .lane.lane--strip::after{
   background: rgba(160,220,255,.75);
   box-shadow: 0 0 14px rgba(120,210,255,.60);
 }
 
-/* 指〇 */
+/* ===== finger dots ===== */
 .fingerDot{
   position:absolute;
   top: 50%;
@@ -78,75 +158,68 @@
   -webkit-user-select:none;
   will-change: transform;
 }
-
 .fingerDot .fingerChar{
   font-size: 20px;
   font-weight: 900;
   letter-spacing: .02em;
 }
-
-/* 判定ラインに来たら光る（各指が個別に光る） */
 .fingerDot.ready{
   box-shadow: 0 0 0 6px rgba(80,200,255,.20), 0 0 20px rgba(80,200,255,.45);
 }
-
-/* 成功/失敗の残像 */
 .fingerDot.hit{ opacity: .35; }
 .fingerDot.miss{ opacity: .18; filter: grayscale(1); }
 
-/* --- コード色（枠線色を変える：次が分かる） --- */
-.ch-C  { border-color: rgba(120,200,255,.55); }
-.ch-Am { border-color: rgba(140,255,190,.55); }
-.ch-F  { border-color: rgba(255,200,120,.55); }
-.ch-G  { border-color: rgba(255,140,200,.55); }
+/* chord colors (border) */
+.ch-C  { border-color: rgba(120,200,255,.55) !important; }
+.ch-Am { border-color: rgba(140,255,190,.55) !important; }
+.ch-F  { border-color: rgba(255,200,120,.55) !important; }
+.ch-G  { border-color: rgba(255,140,200,.55) !important; }
 
-/* ready時はさらに強める（色も乗る） */
-.ch-C.ready  { box-shadow: 0 0 0 6px rgba(120,200,255,.18), 0 0 22px rgba(120,200,255,.35); }
-.ch-Am.ready { box-shadow: 0 0 0 6px rgba(140,255,190,.16), 0 0 22px rgba(140,255,190,.32); }
-.ch-F.ready  { box-shadow: 0 0 0 6px rgba(255,200,120,.16), 0 0 22px rgba(255,200,120,.32); }
-.ch-G.ready  { box-shadow: 0 0 0 6px rgba(255,140,200,.16), 0 0 22px rgba(255,140,200,.32); }
+.ch-C.ready  { box-shadow: 0 0 0 6px rgba(120,200,255,.18), 0 0 22px rgba(120,200,255,.35) !important; }
+.ch-Am.ready { box-shadow: 0 0 0 6px rgba(140,255,190,.16), 0 0 22px rgba(140,255,190,.32) !important; }
+.ch-F.ready  { box-shadow: 0 0 0 6px rgba(255,200,120,.16), 0 0 22px rgba(255,200,120,.32) !important; }
+.ch-G.ready  { box-shadow: 0 0 0 6px rgba(255,140,200,.16), 0 0 22px rgba(255,140,200,.32) !important; }
 
-/* STRUM + NOW/NEXT */
+/* ===== pads / now-next ===== */
+#pads, .pads{
+  display:flex;
+  gap: 12px;
+  align-items:stretch;
+  margin-top: 12px;
+}
 .btn--strum{
   flex: 1 1 auto;
   min-height: 56px;
   font-size: 18px;
   border-radius: 16px;
 }
-
 .nextBox{
   flex: 0 0 auto;
-  min-width: 210px;
+  min-width: 220px;
   padding: 10px 12px;
   border-radius: 16px;
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.12);
 }
-
-.nowNextRow{
-  display:flex;
-  gap: 14px;
-}
-
-.nnLabel{
-  font-size: 12px;
-  opacity: .75;
-  margin-bottom: 4px;
-}
-
-.nnChord{
-  font-size: 22px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-/* chord色をNOW/NEXTにも適用 */
+.nowNextRow{ display:flex; gap: 14px; }
+.nnLabel{ font-size: 12px; opacity: .75; margin-bottom: 4px; }
+.nnChord{ font-size: 22px; font-weight: 900; line-height: 1; }
 .nnChord.ch-C  { color: rgba(170,230,255,.95); }
 .nnChord.ch-Am { color: rgba(180,255,215,.95); }
 .nnChord.ch-F  { color: rgba(255,220,170,.95); }
 .nnChord.ch-G  { color: rgba(255,180,220,.95); }
 
-.tapFlash{
-  outline:3px solid rgba(255,255,255,.55);
-  box-shadow: 0 0 0 6px rgba(80,200,255,.18);
+/* ===== floating message ===== */
+#floating, .floating{
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.55);
+  border: 1px solid rgba(255,255,255,.12);
+  opacity: 0;
+  pointer-events:none;
+  z-index: 9999;
 }
