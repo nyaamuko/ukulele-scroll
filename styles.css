@@ -163,6 +163,9 @@ body{
   box-shadow: 0 18px 30px rgba(0,0,0,.28);
   transform: translateY(-70px);
   will-change: transform;
+
+  top: 0;
+  z-index: 3;
 }
 .noteSmall{
   position:absolute;
@@ -320,3 +323,10 @@ body{
   background: rgba(0,0,0,.20);
 }
 .small{font-size: 11px; opacity:.7}
+
+
+/* FIX v3: ensure overlays don't steal taps */
+#hitLine, .hitLine, .hitGlow, .hitText{ pointer-events:none; }
+
+/* FIX v3: tap feedback */
+.tapFlash{ outline:3px solid rgba(255,255,255,.55); box-shadow: 0 0 0 6px rgba(80,200,255,.18); }
