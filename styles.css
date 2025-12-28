@@ -322,5 +322,45 @@ body{
 .small{font-size: 11px; opacity:.7}
 
 
-/* v5: tap feedback */
+/* === v6: 横長レーンを縦に4本並べる（上から1弦→2弦→3弦→4弦） === */
+.laneGrid{
+  display:flex !important;
+  flex-direction:column !important;
+  gap: 12px !important;
+}
+
+/* 横長の枠（レーン） */
+.lane.lane--strip{
+  position: relative;
+  height: 120px;           /* ここで各レーンの高さ調整 */
+  overflow: hidden;
+}
+
+/* レーン内の「当たりライン」（左側） */
+.lane.lane--strip::after{
+  content:"";
+  position:absolute;
+  left: 26px;              /* app.js の HIT_X と一致 */
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255,255,255,.18);
+  box-shadow: 0 0 0 2px rgba(0,0,0,.18) inset;
+  pointer-events:none;
+}
+
+/* ノーツ：縦位置を中央固定、横に流す（transformで translateY(-50%) を使う） */
+.note{
+  top: 50% !important;
+  will-change: transform;
+  z-index: 3;
+}
+
+/* 色クラス（存在しない場合でも崩れない） */
+.note--a{}
+.note--e{}
+.note--c{}
+.note--g{}
+
+/* tap feedback */
 .tapFlash{ outline:3px solid rgba(255,255,255,.55); box-shadow: 0 0 0 6px rgba(80,200,255,.18); }

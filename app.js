@@ -1,6 +1,6 @@
-// Ukeflow DDR Chords - FIX v5 (Right→Left flow over 4 lanes)
-// 変更点：ノーツが「上→下」ではなく「右→左」に流れるように変更
-//        レイアウト（4レーンの見た目）は崩さず、ノーツの移動軸だけ変更。
+// Ukeflow DDR Chords - FIX v6 (横長レーン4本 + 右→左フロー)
+// 要望：上から 1弦→2弦→3弦→4弦 の「横長の枠」を並べ、各枠内で右→左に流す
+// ＝ レイアウト（4本レーン）を「縦に積む」形に変更し、ノーツは各レーン内を右→左へ移動
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,20 +23,20 @@ const bpmInput = $("bpmInput");
 const windowInput = $("windowInput");
 const customProg = $("customProg");
 
+// ★ レーン並び：上から 1弦(A) → 2弦(E) → 3弦(C) → 4弦(G)
 const LANES = [
-  { key: "G", hint: "4弦(G)" },
-  { key: "C", hint: "3弦(C)" },
-  { key: "E", hint: "2弦(E)" },
   { key: "A", hint: "1弦(A)" },
+  { key: "E", hint: "2弦(E)" },
+  { key: "C", hint: "3弦(C)" },
+  { key: "G", hint: "4弦(G)" },
 ];
 
-// 二重発火ガード（touchstart→clickを1回にする）
 function bindTap(el, handler, opts = {}) {
   if (!el) return;
   let last = 0;
   const wrapped = (e) => {
     const now = Date.now();
-    if (now - last < 450) return;
+    if (now - last < 450) return; // touchstart→click二重発火ガード
     last = now;
     try { if (opts.preventDefault) e.preventDefault(); } catch (_) {}
     handler(e);
@@ -46,7 +46,6 @@ function bindTap(el, handler, opts = {}) {
   el.addEventListener("click", wrapped);
 }
 
-// タップの視覚フィードバック（「押した感」）
 function flash(el){
   if (!el) return;
   el.classList.add("tapFlash");
@@ -67,25 +66,24 @@ let combo = 0;
 let rafId = null;
 let lastTs = 0;
 
-let notes = []; // {id, chord, laneIndex, x, targetTimeMs, travelMs, hit, el}
+let notes = []; // {id, chord, laneIndex, startX, targetX, targetTimeMs, travelMs, hit, el}
 let nextId = 1;
 let songPosMs = 0;
 
 let bpm = 90;
-let flowSpeed = 1.0;           // 既存の「スピード」スライダを横移動にも使用
+let flowSpeed = 1.0;
 let hitWindowMs = 130;
 let beatMs = 60000 / bpm;
 
 let prog = ["G","C","E","A"];
 let progIdx = 0;
 
-let spawnAheadBeats = 3.0;     // 先読み（時間）
-let spawnEveryBeats = 1.0;     // 生成間隔
+let spawnAheadBeats = 3.0;
+let spawnEveryBeats = 1.0;
 let nextSpawnBeat = 0;
 
-// 右→左：ノーツをレーン内の上部に固定して流す
-const NOTE_Y = 46;             // lane内の上位置（見た目を崩さない範囲で固定）
-const HIT_X = 26;              // lane内の「当たり位置」（左端寄り）
+// 右→左：当たり位置（レーン内の左側）
+const HIT_X = 26;
 
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
@@ -123,9 +121,10 @@ function showFloat(text){
 function buildLanes(){
   if (!laneGrid) return;
   laneGrid.innerHTML = "";
+
   LANES.forEach((l, i) => {
     const lane = document.createElement("div");
-    lane.className = "lane";
+    lane.className = "lane lane--strip";
     lane.dataset.index = String(i);
 
     const header = document.createElement("div");
@@ -152,6 +151,7 @@ function buildLanes(){
 function buildPads(){
   if (!pads) return;
   pads.innerHTML = "";
+  // パッドは「1→2→3→4」順に表示（A,E,C,G）
   LANES.forEach((l, i) => {
     const p = document.createElement("div");
     p.className = `pad pad--${i}`;
@@ -172,14 +172,15 @@ function resolveProgression(){
   return COURSES[v] || ["G","C","E","A"];
 }
 
+// コード→レーン（rootだけ見る。G/C/E/A をそれぞれ対応弦へ）
 function chordToLaneIndex(chord){
   const root = (chord || "").replace(/[^A-G#]/g, "");
-  const base = root.startsWith("G") ? "G"
-            : root.startsWith("C") ? "C"
+  const base = root.startsWith("A") ? "A"
             : root.startsWith("E") ? "E"
-            : root.startsWith("A") ? "A"
+            : root.startsWith("C") ? "C"
+            : root.startsWith("G") ? "G"
             : null;
-  if (!base) return 3;
+  if (!base) return 0; // fallback: 1弦
   return LANES.findIndex(l => l.key === base);
 }
 
@@ -257,24 +258,24 @@ function spawnNote(chord, beatAt){
   if (!laneEl) return;
 
   const el = document.createElement("div");
-  const laneKey = LANES[laneIndex].key;
-  const laneClass = laneKey === "G" ? "note--g"
-                 : laneKey === "C" ? "note--c"
-                 : laneKey === "E" ? "note--e"
-                 : laneKey === "A" ? "note--a"
-                 : "note--other";
-  el.className = `note ${laneClass}`;
+
+  // 色クラスは root に合わせる（見た目だけ）
+  const root = (chord || "").replace(/[^A-G#]/g, "");
+  const base = root.startsWith("A") ? "a"
+            : root.startsWith("E") ? "e"
+            : root.startsWith("C") ? "c"
+            : root.startsWith("G") ? "g"
+            : "other";
+
+  el.className = `note note--${base}`;
   el.dataset.id = String(nextId);
   el.innerHTML = `<div>${chord}</div><div class="noteSmall">tap</div>`;
 
-  // 右→左：lane内の上部に配置
-  el.style.top = `${NOTE_Y}px`;
-
+  // ★横フロー：レーン中央に固定（top:50% + translateY(-50%) はCSS側で）
   laneEl.appendChild(el);
 
   const travelMs = (beatMs * spawnAheadBeats) / flowSpeed;
 
-  // レーン幅に応じて右端からスタート
   const laneW = laneEl.getBoundingClientRect().width;
   const startX = laneW + 60; // 右外から
   const targetX = HIT_X;     // 左の当たり位置
@@ -283,7 +284,6 @@ function spawnNote(chord, beatAt){
     id: nextId++,
     chord,
     laneIndex,
-    x: startX,
     startX,
     targetX,
     el,
@@ -310,7 +310,7 @@ function award(result){
 }
 
 function onHitLane(laneIndex){
-  // 視覚フィードバックは「常に」出す（running前でも反応が分かる）
+  // 視覚フィードバックは常に出す（running前でも「押した」が分かる）
   const laneEl = laneGrid?.children?.[laneIndex];
   const padEl  = pads?.children?.[laneIndex];
   flash(laneEl);
@@ -360,7 +360,6 @@ function tick(ts){
     nextSpawnBeat += spawnEveryBeats;
   }
 
-  // 右→左：時間に基づき X を補間
   for (let i = notes.length - 1; i >= 0; i--){
     const n = notes[i];
     if (!n.el){ notes.splice(i,1); continue; }
@@ -368,11 +367,11 @@ function tick(ts){
     const timeToTarget = n.targetTimeMs - songPosMs;
     const p = 1 - (timeToTarget / n.travelMs); // 0→1
     const x = n.startX + p * (n.targetX - n.startX);
-    n.x = x;
 
-    n.el.style.transform = `translateX(${x}px)`;
+    // ★横フロー：Xだけ更新（YはCSSで中央固定）
+    n.el.style.transform = `translateX(${x}px) translateY(-50%)`;
 
-    // 通り過ぎMISS（左外へ）
+    // 左抜け MISS
     if (!n.hit && x < (HIT_X - 90)){
       n.hit = true;
       n.el.style.opacity = "0.15";
