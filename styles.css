@@ -533,32 +533,54 @@ body{
 
 
 
-/* =========================================================
-   v11b ADD-ON (追記のみ): 縦フレット 1F〜10F（等間隔）
-   既存レイアウト・JS挙動は一切変更しない
-   ========================================================= */
+/* =========================
+   v10 追記（既存CSSは上書きしない）
+   - フィンガーボード感：弦（横線）を追加
+   - コード色：指〇の枠色 + NOW/NEXT 色
+   ========================= */
 
-.lane{
-  /* 既存にoverflowがあっても上書きしないよう、ここでは触らない */
-}
-
+/* 弦（横線）：各レーン中央に1本 */
 .lane::before{
   content:"";
   position:absolute;
-  inset:0;
-  border-radius:inherit;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: linear-gradient(to right,
+    rgba(255,255,255,0),
+    rgba(255,255,255,.22),
+    rgba(255,255,255,.22),
+    rgba(255,255,255,0)
+  );
+  opacity: .9;
   pointer-events:none;
-  /* 1Fを左端として、10Fまで等間隔（0%,10%,...,90% = 10本） */
-  background-image:
-    repeating-linear-gradient(
-      to right,
-      rgba(255,255,255,.16),
-      rgba(255,255,255,.16) 1px,
-      transparent 1px,
-      transparent 10%
-    );
-  opacity:.35;
-  mix-blend-mode: overlay;
 }
 
-/* もしフレットが強すぎる/弱すぎる場合は opacity を調整するだけでOK */
+/* コード色：C/Am/F/G + (GCEA用) E/A */
+.fingerDot.ch_C{ border-color: rgba(120,210,255,.95); }
+.fingerDot.ch_Am{ border-color: rgba(255,180,120,.95); }
+.fingerDot.ch_F{ border-color: rgba(150,255,180,.95); }
+.fingerDot.ch_G{ border-color: rgba(255,140,210,.95); }
+.fingerDot.ch_E{ border-color: rgba(255,230,120,.95); }
+.fingerDot.ch_A{ border-color: rgba(170,160,255,.95); }
+
+/* NOW/NEXT の色（文字色で分かりやすく） */
+.nowChord.ch_C, .nextChord.ch_C{ color: rgba(120,210,255,.98); }
+.nowChord.ch_Am, .nextChord.ch_Am{ color: rgba(255,180,120,.98); }
+.nowChord.ch_F, .nextChord.ch_F{ color: rgba(150,255,180,.98); }
+.nowChord.ch_G, .nextChord.ch_G{ color: rgba(255,140,210,.98); }
+.nowChord.ch_E, .nextChord.ch_E{ color: rgba(255,230,120,.98); }
+.nowChord.ch_A, .nextChord.ch_A{ color: rgba(170,160,255,.98); }
+
+/* READY発光時：枠色をコード色優先で光らせる（既存readyより強め） */
+.fingerDot.ready{
+  box-shadow: 0 0 0 6px rgba(255,255,255,.10), 0 0 24px rgba(255,255,255,.20);
+}
+.fingerDot.ready.ch_C{ box-shadow: 0 0 0 6px rgba(120,210,255,.18), 0 0 26px rgba(120,210,255,.35); }
+.fingerDot.ready.ch_Am{ box-shadow: 0 0 0 6px rgba(255,180,120,.18), 0 0 26px rgba(255,180,120,.35); }
+.fingerDot.ready.ch_F{ box-shadow: 0 0 0 6px rgba(150,255,180,.18), 0 0 26px rgba(150,255,180,.35); }
+.fingerDot.ready.ch_G{ box-shadow: 0 0 0 6px rgba(255,140,210,.18), 0 0 26px rgba(255,140,210,.35); }
+.fingerDot.ready.ch_E{ box-shadow: 0 0 0 6px rgba(255,230,120,.18), 0 0 26px rgba(255,230,120,.35); }
+.fingerDot.ready.ch_A{ box-shadow: 0 0 0 6px rgba(170,160,255,.18), 0 0 26px rgba(170,160,255,.35); }
