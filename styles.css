@@ -531,3 +531,45 @@ body{
   box-shadow: 0 0 0 6px rgba(80,200,255,.18);
 }
 
+
+
+/* ===== Ukeflow DDR Chords 追記（v9）: CSS上書き禁止のため末尾追記のみ ===== */
+
+/* フィンガーボード感：弦の横線（各レーン中央） */
+.lane.lane--strip::before{
+  content:"";
+  position:absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,.18);
+}
+
+/* NOW表示（NEXTと同系統） */
+.nowBox{
+  flex: 0 0 auto;
+  min-width: 120px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+}
+.nowLabel{ font-size: 12px; opacity: .72; letter-spacing: .08em; }
+.nowChord{ font-size: 20px; font-weight: 800; }
+
+/* コード色（指〇の枠色 + NOW/NEXT） */
+.fingerDot.ch-C, .nowChord.ch-C, .nextChord.ch-C { border-color: rgba(124,200,255,.95); color: rgba(195,235,255,1); }
+.fingerDot.ch-Am, .nowChord.ch-Am, .nextChord.ch-Am { border-color: rgba(170,255,160,.95); color: rgba(210,255,210,1); }
+.fingerDot.ch-F, .nowChord.ch-F, .nextChord.ch-F { border-color: rgba(255,185,120,.95); color: rgba(255,225,195,1); }
+.fingerDot.ch-G, .nowChord.ch-G, .nextChord.ch-G { border-color: rgba(255,120,170,.95); color: rgba(255,205,225,1); }
+
+/* gcea用 */
+.fingerDot.ch-A, .nowChord.ch-A, .nextChord.ch-A { border-color: rgba(180,160,255,.95); color: rgba(220,210,255,1); }
+.fingerDot.ch-E, .nowChord.ch-E, .nextChord.ch-E { border-color: rgba(255,235,120,.95); color: rgba(255,250,200,1); }
+
+/* 既存 ready 発光を「コード色」でも見えるように */
+.fingerDot.ready{
+  filter: brightness(1.15);
+}
