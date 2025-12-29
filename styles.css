@@ -643,3 +643,36 @@ body{
   position: relative;
   z-index: 100;
 }
+
+
+/* ==============================
+   v21 FIX
+   1) 縦フレット線（1F〜10F）を確実表示：.lane.lane--strip の背景で描画
+      ※ ::after は左端ガイド線で使用中なので触らない
+   2) バージョン表記を右下へ移動（文字かぶり回避）
+   既存挙動は変更しない / CSS追記のみ
+============================== */
+
+/* 1Fの位置＝既存の左端ガイド線(約26px)に合わせる */
+.lane.lane--strip{
+  /* 1pxの縦線を1タイルの左端に描く → 10回繰り返して 1F〜10F */
+  background-image: linear-gradient(
+    to right,
+    rgba(255,255,255,0.35) 0px,
+    rgba(255,255,255,0.35) 1px,
+    transparent 1px,
+    transparent 100%
+  );
+  background-repeat: repeat;
+  background-position: 26px 0; /* 1F開始位置 */
+  background-size: calc((100% - 26px) / 10) 100%;
+}
+
+/* 既存の背景色は .lane 側にあるのでそのまま活かす */
+
+/* 右下に移動 */
+.versionBadge{
+  left: auto !important;
+  right: 10px !important;
+  bottom: 10px !important;
+}
