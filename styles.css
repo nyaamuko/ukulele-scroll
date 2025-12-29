@@ -584,34 +584,3 @@ body{
 .fingerDot.ready.ch_G{ box-shadow: 0 0 0 6px rgba(255,140,210,.18), 0 0 26px rgba(255,140,210,.35); }
 .fingerDot.ready.ch_E{ box-shadow: 0 0 0 6px rgba(255,230,120,.18), 0 0 26px rgba(255,230,120,.35); }
 .fingerDot.ready.ch_A{ box-shadow: 0 0 0 6px rgba(170,160,255,.18), 0 0 26px rgba(170,160,255,.35); }
-
-
-/* ==============================
-   v15 縦フレット線のみ（1F〜10F）
-   既存コード不変更・CSS追記のみ
-============================== */
-
-/* レーンを基準に */
-.lane {
-  position: relative;
-}
-
-/* 既存の左端ガイド線と同系色・同太さで描画 */
-.lane::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 24px;                 /* 1F 開始位置（既存ライン回避） */
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 1;
-
-  background-image: repeating-linear-gradient(
-    to right,
-    rgba(255,255,255,0.35) 0px,
-    rgba(255,255,255,0.35) 1px,
-    transparent 1px,
-    transparent calc((100% - 24px) / 10)
-  );
-}

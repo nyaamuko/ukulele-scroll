@@ -1,4 +1,4 @@
-// Ukeflow - v10 (コード単位で同時到達 / 指〇ドット / 指板っぽい弦+フレット)
+// Ukeflow - v16 (コード単位で同時到達 / 指〇ドット / 指板っぽい弦+フレット)
 // A: C→Am→F→G を「コード単位」で流す（コード間に間隔）
 //    ＝同じコード内の指は "同時" に判定ラインへ到達（フレット差は保持）
 // B: BOXではなく、弦の横線上を指〇が流れる（フィンガーボード風）
@@ -327,8 +327,10 @@ function spawnChordEvent(chord, beatAt) {
     laneEl.appendChild(el);
 
     const laneW = laneEl.getBoundingClientRect().width;
-    const startX = laneW + 80;
     const targetX = fretToX(laneEl, fret);
+    // ★出現時点からフレット差（例: 1F/2F, 2F/3F）を見せるため startX に差分を反映
+    const x1 = fretToX(laneEl, 1);
+    const startX = laneW + 80 + (targetX - x1);
 
     // 先読み分だけ飛ばして "同時に" 到達するように travelMs を共通化
     const travelMs = (beatMs * spawnAheadBeats) / flowSpeed;
