@@ -1,20 +1,3 @@
-
-// === UKFLOW_SPAWN_HIDE_FIX (exp-neck-v1) =========================
-// iOS Safari may render a new absolutely-positioned element at x=0 for 1 frame
-// before its first transform/style is applied. This causes a "flash" at the left edge.
-// Strategy: create hidden -> set initial transform -> append -> reveal on next RAF.
-function __ukflowSafeAppend(el, parent){
-  try{
-    el.style.visibility = 'hidden';
-    __ukflowSafeAppend(el, parent);
-    requestAnimationFrame(()=>{ el.style.visibility = 'visible'; });
-  }catch(e){
-    // fallback
-    __ukflowSafeAppend(el, parent);
-  }
-}
-// =================================================================
-
 // Ukeflow - v18 (コード単位で同時到達 / 指〇ドット / 指板っぽい弦+フレット)
 // A: C→Am→F→G を「コード単位」で流す（コード間に間隔）
 //    ＝同じコード内の指は "同時" に判定ラインへ到達（フレット差は保持）
@@ -341,7 +324,7 @@ function spawnChordEvent(chord, beatAt) {
     const el = document.createElement("div");
     el.className = "fingerDot";
     el.innerHTML = `<span class="fingerChar">${FINGERS[finger] || "?"}</span>`;
-    __ukflowSafeAppend(el, laneEl);
+    laneEl.appendChild(el);
 
     const laneW = laneEl.getBoundingClientRect().width;
     const startX = laneW + 80;
