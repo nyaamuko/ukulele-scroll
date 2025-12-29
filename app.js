@@ -324,10 +324,13 @@ function spawnChordEvent(chord, beatAt) {
     const el = document.createElement("div");
     el.className = "fingerDot";
     el.innerHTML = `<span class="fingerChar">${FINGERS[finger] || "?"}</span>`;
-    laneEl.appendChild(el);
-
     const laneW = laneEl.getBoundingClientRect().width;
     const startX = laneW + 80;
+    // exp-neck-v2: set initial transform BEFORE append to prevent iOS 1-frame flash at x=0
+    el.style.transform = `translate3d(${startX}px,0,0)`;
+    el.style.visibility = 'hidden';
+    laneEl.appendChild(el);
+    requestAnimationFrame(() => { el.style.visibility = 'visible'; });
     const targetX = fretToX(laneEl, fret);
     // ★出現時点からフレット差（例: F=1F/2F, G=2F/3F）を見せるためのオフセット
     //   到達点(targetX)は変えないので判定位置はそのまま

@@ -696,3 +696,14 @@ body{
   background-position: 26px 0 !important; /* 1F位置 */
   background-size: calc((100% - 26px) / 10) 100% !important; /* 10分割＝1F〜10F */
 }
+
+
+/* =========================
+   exp-neck-v2 (EXPERIMENT)
+   spawn flash fix (set transform before append)
+========================= */
+.fingerDot {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
