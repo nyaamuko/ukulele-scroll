@@ -1,4 +1,4 @@
-// Ukeflow - v17 (コード単位で同時到達 / 指〇ドット / 指板っぽい弦+フレット)
+// Ukeflow - v18 (コード単位で同時到達 / 指〇ドット / 指板っぽい弦+フレット)
 // A: C→Am→F→G を「コード単位」で流す（コード間に間隔）
 //    ＝同じコード内の指は "同時" に判定ラインへ到達（フレット差は保持）
 // B: BOXではなく、弦の横線上を指〇が流れる（フィンガーボード風）
@@ -119,8 +119,7 @@ let spawnAheadBeats = 3.0;
 let chordEvents = []; // {id, chord, targetTimeMs, hit, tokens:[]}
 let nextEventId = 1;
 
-let tokens = []; // {el,laneIndex,startX,targetX,
-      fretOffset,targetTimeMs,travelMs,hit,ready}
+let tokens = []; // {el,laneIndex,startX,targetX,targetTimeMs,travelMs,hit,ready}
 let nowReady = false; // 「今弾いて」状態（判定ラインの発光用）
 
 function setRun(on) {
@@ -330,7 +329,8 @@ function spawnChordEvent(chord, beatAt) {
     const laneW = laneEl.getBoundingClientRect().width;
     const startX = laneW + 80;
     const targetX = fretToX(laneEl, fret);
-    // 出現直後からフレット差を“見える化”するためのオフセット（最終到達点は変えない）
+    // ★出現時点からフレット差（例: F=1F/2F, G=2F/3F）を見せるためのオフセット
+    //   到達点(targetX)は変えないので判定位置はそのまま
     const x1 = fretToX(laneEl, 1);
     const fretOffset = (targetX - x1);
 
@@ -342,6 +342,7 @@ function spawnChordEvent(chord, beatAt) {
       laneIndex,
       startX,
       targetX,
+      fretOffset,
       targetTimeMs,
       travelMs,
       hit: false,
@@ -469,10 +470,9 @@ function tick(ts) {
     const timeToTarget = t.targetTimeMs - songPosMs;
     const p = 1 - timeToTarget / t.travelMs; // 0→1
     const xBase = t.startX + p * (t.targetX - t.startX);
-    // ★コード単位で“同時に出現”させつつ、出現直後からフレット差を見せる
-    //  - pが小さい序盤だけ offset を素早く立ち上げ、終盤は(1-p)で自然に0へ
-    const pe = Math.max(0, Math.min(1, (p - 0.02) / 0.10));
-    const x = xBase + (1 - p) * pe * (t.fretOffset || 0);
+    // ★同時に出現（startX共通）しつつ、出現直後からフレット差を見せる
+    //    p=0(出現直後)で最大、p→1(判定付近)で0に収束
+    const x = xBase + (1 - p) * (t.fretOffset || 0);
 
     t.el.style.transform = `translateX(${x}px) translateY(-50%)`;
 
