@@ -809,20 +809,14 @@ body{
 
 
 /* =========================
-   v32 右端で一瞬消える対策
-   - iOS Safari の右端クリップ境界(100%付近)での描画落ちを回避
+   v33 右端の一瞬消え（最小対策）
+   - v31を基準に戻し、余計なクリップ処理は入れない
+   - 指だけを -0.6px 内側に寄せて右端境界(100%)の描画落ちを回避
 ========================= */
 
-/* 右端だけクリップ領域を少しだけ広げる（見た目は変えない） */
-.playfield .laneGrid{
-  clip-path: inset(0 -8px 0 0 round 18px);
-  -webkit-clip-path: inset(0 -8px 0 0 round 18px);
-}
-
-/* 指の描画を 0px/100% の境界からわずかに外す */
 .fingerDot{
-  z-index: 30 !important;
-  transform: translate3d(-0.2px,0,0) !important;
+  /* 既存のtransform指定を壊さないため translateX だけ追加 */
+  transform: translate3d(-0.6px,0,0) !important;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   will-change: transform;
