@@ -763,3 +763,67 @@ body{
     padding-bottom: 8px !important;
   }
 }
+
+
+/* =========================
+   v31 安定化＋白線ネック
+   - 指が左端で一瞬消える問題を緩和
+   - 弦/フレットを白系に統一（弦を太く）
+   - 背景ドット撤去
+========================= */
+
+/* 指が左端で消える原因：clip+z-index競合 → 少し内側で描画 */
+.fingerDot{
+  z-index: 20 !important;
+  transform: translate3d(0.1px,0,0);
+}
+
+/* ネック背景：ドット撤去、シンプルに */
+.playfield .laneGrid::after{
+  background: linear-gradient(
+    180deg,
+    rgba(10,12,20,0.95),
+    rgba(6,8,14,0.95)
+  ) !important;
+}
+
+/* フレット縦線：白・細め */
+.lane.fretGrid::after,
+.laneGrid .fret,
+.laneGrid .fretLine{
+  background: rgba(255,255,255,0.45) !important;
+  opacity: 1 !important;
+}
+
+/* 弦（横線）：白・太め */
+.lane::before{
+  height: 5px !important;
+  background: rgba(255,255,255,0.95) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+}
+
+/* ナットも白で統一 */
+.playfield .laneGrid .nutBar{
+  background: rgba(255,255,255,0.95) !important;
+}
+
+
+/* =========================
+   v32 右端で一瞬消える対策
+   - iOS Safari の右端クリップ境界(100%付近)での描画落ちを回避
+========================= */
+
+/* 右端だけクリップ領域を少しだけ広げる（見た目は変えない） */
+.playfield .laneGrid{
+  clip-path: inset(0 -8px 0 0 round 18px);
+  -webkit-clip-path: inset(0 -8px 0 0 round 18px);
+}
+
+/* 指の描画を 0px/100% の境界からわずかに外す */
+.fingerDot{
+  z-index: 30 !important;
+  transform: translate3d(-0.2px,0,0) !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
+}
