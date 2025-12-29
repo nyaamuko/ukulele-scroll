@@ -804,54 +804,86 @@ body{
 
 
 /* ==============================
-   v26 iPhone見やすさ優先（動作ロジックは触らない）
-   - 指○が消える対策：描画順（z-index）を安定化
-   - HITライン廃止（非表示）＋レーン領域を下まで使う
-   - 右パネルを「弦の下」に移動（モバイルは縦積み）
-   - 弦（レーン）の間隔を縮める
-   ※CSS追記のみ
+   v27 iPhone最適化（確実に変わる版）
+   - HIT領域を撤去し、その分「ネック下」にUIを収める
+   - ネック（弦間隔）をさらに詰める
+   - 右パネルをネックの下へ（幅条件を広げて確実適用）
+   - 指○が一瞬消える対策：重なり順＆overflowを安定化
+   ※JSは触らない
 ============================== */
 
-/* 指○が消える対策：レーン/指/フローティングを最前面に固定 */
-.laneGrid{ z-index: 10; }
-.lane{ z-index: 11; }
-.floating{ z-index: 30; }
-.fingerDot{ z-index: 40 !important; transform: translateZ(0); }
+/* --- 指○が消える対策（最優先） --- */
+.playfield, .laneGrid, .lane {
+  overflow: visible !important;
+}
+.fingerDot{
+  position: relative !important;
+  z-index: 999 !important;
+  transform: translateZ(0);
+}
 
-/* HITを無くす */
-.hitLine{ display:none !important; }
+/* --- HITを撤去 --- */
+.hitLine{
+  display:none !important;
+}
+/* HIT撤去分、レーンを全面に */
+.playfield .laneGrid{
+  inset: 0 !important;
+}
 
-/* HITを消した分、レーンを下まで使う */
-.playfield .laneGrid{ inset: 0 !important; }
+/* --- ネック（弦間隔）をさらに詰める --- */
+.laneGrid{
+  gap: 4px !important;
+  padding: 8px !important;
+}
+.lane.lane--strip{
+  height: 66px !important;
+}
 
-/* モバイル：右パネルを下へ（弦の下） */
-@media (max-width: 980px) {
+/* ネック枠（v25の計算を上書き：4弦＋少し下） */
+.laneGrid{
+  --lane-h: 66px;
+  --lane-gap: 4px;
+  --lane-pad: 8px;
+  --neck-h: calc(4 * var(--lane-h) + 3 * var(--lane-gap) + 2 * var(--lane-pad) + 12px);
+}
+.laneGrid::before{
+  height: var(--neck-h) !important;
+}
+.laneGrid::after{
+  height: calc(var(--neck-h) - 16px) !important;
+}
+
+/* --- 右パネルをネックの下へ（適用条件を広げる） --- */
+@media (max-width: 1400px) {
   .main{
     display:flex !important;
     flex-direction: column !important;
     gap: 10px !important;
   }
   .playfield{ order: 1; }
-  .panel{ order: 2; }
+  .panel{ order: 2; width: 100% !important; }
 
-  /* 横幅いっぱい */
-  .panel{ width: 100% !important; }
-
-  /* レーンの上下間隔を縮める（ネック感） */
-  .laneGrid{
-    gap: 6px !important;
-    padding: 8px !important;
+  /* パネルをコンパクトにしてネック下に収める */
+  .panel{
+    padding: 10px !important;
   }
-  .lane.lane--strip{
-    height: 76px !important;
+  .panelCard{
+    padding: 12px !important;
   }
-
-  /* ボタン行：横スクロールにならないよう詰める */
-  .panelCard .row{
-    gap: 8px !important;
+  .panel h3, .panel .label{
+    font-size: 12px !important;
   }
   .btn{
-    padding: 12px 12px !important;
+    padding: 10px 12px !important;
     font-size: 14px !important;
+  }
+  .panel .row{
+    gap: 8px !important;
+  }
+  /* 遊び方など長文はiPhoneでは折りたたみ（高さ制限） */
+  .howto{
+    max-height: 140px !important;
+    overflow: auto !important;
   }
 }
