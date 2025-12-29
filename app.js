@@ -476,13 +476,18 @@ function tick(ts) {
 
     t.el.style.transform = `translateX(${x}px) translateY(-50%)`;
 
-    // ★判定ラインに来たら光る（今弾いて！）
-    const near = Math.abs(x - HIT_X) <= 10;
-    if (!t.hit && near) {
+    // ★「今弾いて！」の光り方：左端通過ではなく「ターゲット時刻」で発光（コード内は同時に光る）
+    const inWindow = Math.abs(t.targetTimeMs - songPosMs) <= hitWindowMs;
+    if (!t.hit && inWindow) {
       nowReady = true;
       if (!t.ready) {
         t.ready = true;
         t.el.classList.add("ready");
+      }
+    } else {
+      if (t.ready) {
+        t.ready = false;
+        t.el.classList.remove("ready");
       }
     } else {
       if (t.ready) {

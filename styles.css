@@ -696,3 +696,70 @@ body{
   background-position: 26px 0 !important; /* 1F位置 */
   background-size: calc((100% - 26px) / 10) 100% !important; /* 10分割＝1F〜10F */
 }
+
+
+/* ==============================
+   v23 次ステップ
+   1) 縦フレット線を「4弦まとめて1本」に（laneGridオーバーレイ）
+   2) 指〇の発光は「左端」ではなく「各フレット到達時刻」で同時発光（JS側）
+   3) ネック風：上下間隔を縮める＋周囲を四角で囲う
+   ※既存CSSは維持、末尾追記のみ
+============================== */
+
+/* 1) 既存の各lane背景フレットは無効化（切れ切れの原因） */
+.lane.fretGrid{
+  background-image: none !important;
+}
+
+/* laneGrid 全体にフレット線を重ねて、縦線を1本でつなげる */
+.laneGrid{
+  position: absolute;
+}
+.laneGrid::after{
+  content:"";
+  position:absolute;
+  inset: 10px 10px 10px 10px; /* laneGridのpadding(10px)内側に合わせる */
+  pointer-events:none;
+  z-index: 5;
+  background-image: linear-gradient(
+    to right,
+    rgba(255,255,255,.22) 0px,
+    rgba(255,255,255,.22) 2px,
+    transparent 2px,
+    transparent 100%
+  );
+  background-repeat: repeat;
+  background-position: 26px 0; /* 1Fの目安位置（HIT_X） */
+  background-size: calc((100% - 26px) / 10) 100%;
+}
+
+/* 指〇が線より前に出るように */
+.fingerDot{
+  position: relative;
+  z-index: 10;
+}
+
+/* 3) ネック風：上下間隔を詰める */
+.laneGrid{
+  gap: 6px !important;
+  padding: 8px !important;
+}
+.lane.lane--strip{
+  height: 86px !important;
+}
+
+/* 周囲を四角で囲う（レーン全体＝ネック枠） */
+.playfield{
+  border-radius: 10px !important;
+}
+.laneGrid{
+  border: 2px solid rgba(255,255,255,.18);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+}
+
+/* ready発光を分かりやすく（既存のreadyクラスを活かす） */
+.fingerDot.ready{
+  box-shadow: 0 0 0 3px rgba(160,220,255,.35), 0 0 18px rgba(120,210,255,.55) !important;
+  outline: 2px solid rgba(160,220,255,.55);
+}
