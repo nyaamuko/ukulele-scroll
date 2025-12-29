@@ -753,3 +753,51 @@ body{
   border-radius: 10px;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
 }
+
+
+/* ==============================
+   v25 ネック枠の範囲を「4弦＋少し下」までにトリム
+   - 枠と縦フレット線を neckBox 内に限定（だらっと伸びるのを防止）
+   - 指○が消える/出る対策：指○を最前面に固定
+   ※JSは触らない
+============================== */
+
+.laneGrid{
+  --lane-h: 86px;
+  --lane-gap: 6px;
+  --lane-pad: 8px;
+  --neck-h: calc(4 * var(--lane-h) + 3 * var(--lane-gap) + 2 * var(--lane-pad) + 18px); /* 4弦の下に少し余白 */
+  border: none !important; /* v24の枠はやめる（伸びる原因） */
+  box-shadow: none !important;
+}
+
+/* ネック枠（4弦エリアだけ） */
+.laneGrid::before{
+  content:"";
+  position:absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: var(--neck-h);
+  pointer-events:none;
+  z-index: 4;
+  border: 2px solid rgba(255,255,255,.18);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+}
+
+/* 縦フレット線もネック枠内だけに限定 */
+.laneGrid::after{
+  inset: auto !important;
+  left: 8px !important;
+  top: 8px !important;
+  right: 8px !important;
+  height: calc(var(--neck-h) - 16px) !important;
+  z-index: 5 !important;
+}
+
+/* 指○を常に最前面（消えたりついたりを防ぐ） */
+.fingerDot{
+  z-index: 20 !important;
+  transform: translateZ(0);
+}
