@@ -676,3 +676,23 @@ body{
   right: 10px !important;
   bottom: 10px !important;
 }
+
+
+/* ==============================
+   v22 縦フレットを“確実に見える”強さで 1F〜10F
+   ※既存の .lane.fretGrid を上書き（追記で優先）
+============================== */
+
+.lane.fretGrid{
+  /* 左端ガイド線と同系（白っぽい2px） */
+  background-image: linear-gradient(
+    to right,
+    rgba(255,255,255,.22) 0px,
+    rgba(255,255,255,.22) 2px,
+    transparent 2px,
+    transparent 100%
+  ) !important;
+  background-repeat: repeat !important;
+  background-position: 26px 0 !important; /* 1F位置 */
+  background-size: calc((100% - 26px) / 10) 100% !important; /* 10分割＝1F〜10F */
+}
