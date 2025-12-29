@@ -804,86 +804,87 @@ body{
 
 
 /* ==============================
-   v27 iPhone最適化（確実に変わる版）
-   - HIT領域を撤去し、その分「ネック下」にUIを収める
-   - ネック（弦間隔）をさらに詰める
-   - 右パネルをネックの下へ（幅条件を広げて確実適用）
-   - 指○が一瞬消える対策：重なり順＆overflowを安定化
+   v28 弦固定 + フレット/指だけスクロール（Yousician風）
+   - 弦（横線）は lane::before で固定
+   - 縦フレット線は .laneScroll の背景をスクロール
+   - 指〇は .laneScroll 内に配置（クリップは lane の overflow hidden に任せる）
+============================== */
+
+/* 既存のレーン背景フレットは無効化（スクロール層へ移行） */
+.lane.fretGrid{
+  background-image: none !important;
+}
+
+/* スクロール層（フレット縦線＋指） */
+.laneScroll{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  /* 10Fまで等間隔（左=1F相当） */
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.18) 2px, rgba(255,255,255,0) 2px);
+  background-size: calc((100% - 60px) / 10) 100%;
+  background-position: 44px 0;
+}
+
+/* 指〇はスクロール層の上 */
+.laneScroll .fingerDot{
+  z-index: 5;
+}
+/* version badge 右下 */
+.versionBadge{
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  left: auto;
+  font-size: 11px;
+  opacity: .75;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.22);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  pointer-events:none;
+}
+
+
+/* ==============================
+   v29 枠外飛び/消え/ズレの安定化（見た目側）
+   - playfield / laneGrid を確実にクリップ（枠外に出さない）
+   - fingerDot を最前面＆GPU固定でチラつき抑制
+   - フレット線レイヤは指の背面に固定
    ※JSは触らない
 ============================== */
 
-/* --- 指○が消える対策（最優先） --- */
-.playfield, .laneGrid, .lane {
-  overflow: visible !important;
+.playfield{
+  overflow: hidden !important;
 }
-.fingerDot{
-  position: relative !important;
-  z-index: 999 !important;
-  transform: translateZ(0);
-}
-
-/* --- HITを撤去 --- */
-.hitLine{
-  display:none !important;
-}
-/* HIT撤去分、レーンを全面に */
-.playfield .laneGrid{
-  inset: 0 !important;
-}
-
-/* --- ネック（弦間隔）をさらに詰める --- */
 .laneGrid{
-  gap: 4px !important;
-  padding: 8px !important;
+  overflow: hidden !important;
 }
-.lane.lane--strip{
-  height: 66px !important;
+@supports (clip-path: inset(0 round 18px)) {
+  .playfield{ clip-path: inset(0 round 22px); }
 }
 
-/* ネック枠（v25の計算を上書き：4弦＋少し下） */
-.laneGrid{
-  --lane-h: 66px;
-  --lane-gap: 4px;
-  --lane-pad: 8px;
-  --neck-h: calc(4 * var(--lane-h) + 3 * var(--lane-gap) + 2 * var(--lane-pad) + 12px);
-}
+.laneGrid::after,
 .laneGrid::before{
-  height: var(--neck-h) !important;
-}
-.laneGrid::after{
-  height: calc(var(--neck-h) - 16px) !important;
+  z-index: 5 !important;
+  pointer-events: none !important;
 }
 
-/* --- 右パネルをネックの下へ（適用条件を広げる） --- */
-@media (max-width: 1400px) {
-  .main{
-    display:flex !important;
-    flex-direction: column !important;
-    gap: 10px !important;
-  }
-  .playfield{ order: 1; }
-  .panel{ order: 2; width: 100% !important; }
-
-  /* パネルをコンパクトにしてネック下に収める */
-  .panel{
-    padding: 10px !important;
-  }
-  .panelCard{
-    padding: 12px !important;
-  }
-  .panel h3, .panel .label{
-    font-size: 12px !important;
-  }
-  .btn{
-    padding: 10px 12px !important;
-    font-size: 14px !important;
-  }
-  .panel .row{
-    gap: 8px !important;
-  }
-  /* 遊び方など長文はiPhoneでは折りたたみ（高さ制限） */
-  .howto{
-    max-height: 140px !important;
-    overflow: auto !important;
-  }
+.fingerDot{
+  z-index: 50 !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0,0,0);
+  will-change: transform, left;
 }
+
+.scrollLayer, .notesLayer, .fretsLayer{
+  transform: translate3d(0,0,0);
+  will-change: transform;
+  contain: paint;
+}
+
+.lane{ transform: translateZ(0); }

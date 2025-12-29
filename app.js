@@ -172,6 +172,11 @@ function buildLanes() {
     header.innerHTML = `<div class="laneLabel">${l.key}</div><div class="laneHint">${l.hint}</div>`;
     lane.appendChild(header);
 
+    // スクロール層（フレット縦線＋指〇）
+    const scroll = document.createElement("div");
+    scroll.className = "laneScroll";
+    lane.appendChild(scroll);
+
     // どの弦をタップしてもSTRUM
     bindTap(lane, () => strum(), { preventDefault: true });
 
@@ -324,7 +329,8 @@ function spawnChordEvent(chord, beatAt) {
     const el = document.createElement("div");
     el.className = "fingerDot";
     el.innerHTML = `<span class="fingerChar">${FINGERS[finger] || "?"}</span>`;
-    laneEl.appendChild(el);
+    const scrollLayer = laneEl.querySelector(".laneScroll") || laneEl;
+    scrollLayer.appendChild(el);
 
     const laneW = laneEl.getBoundingClientRect().width;
     const startX = laneW + 80;
@@ -442,6 +448,22 @@ function tick(ts) {
   lastTs = ts;
   songPosMs += dt;
 
+  // フレット縦線も右→左に流す（弦線は固定）
+  try{
+    const travelMsNow = (beatMs * spawnAheadBeats) / flowSpeed;
+    for (let i=0;i<(laneGrid?.children?.length||0);i++){
+      const laneEl = laneGrid.children[i];
+      const scroll = laneEl.querySelector(".laneScroll");
+      if(!scroll) continue;
+      const laneW = laneEl.getBoundingClientRect().width || 1;
+      const x1 = fretToX(laneEl, 1);
+      const pxPerMs = (laneW + 80 - x1) / (travelMsNow || 1);
+      const shift = -(songPosMs * pxPerMs);
+      scroll.style.backgroundPosition = `${44 + shift}px 0`;
+    }
+  }catch(e){}
+
+
   // 先読み生成：コード単位で生成、beats分だけ間隔を空ける
   const currentBeat = songPosMs / beatMs;
 
@@ -472,7 +494,8 @@ function tick(ts) {
     const xBase = t.startX + p * (t.targetX - t.startX);
     // ★同時に出現（startX共通）しつつ、出現直後からフレット差を見せる
     //    p=0(出現直後)で最大、p→1(判定付近)で0に収束
-    const x = xBase + (1 - p) * (t.fretOffset || 0);
+    // フレット差は「出現時点から」ずっと保持
+    const x = xBase + (t.fretOffset || 0);
 
     t.el.style.transform = `translateX(${x}px) translateY(-50%)`;
 
