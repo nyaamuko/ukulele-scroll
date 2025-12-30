@@ -107,7 +107,7 @@ let beatMs = 60000 / bpm;
 const HIT_X = 26;
 
 // 見せたいフレット数（縦線を描く）
-const FRET_COUNT = 9;
+const FRET_COUNT = 12;
 const RIGHT_PADDING = 24;
 
 // 譜面（[{chord, beats}]）
@@ -313,6 +313,17 @@ function spawnChordEvent(chord, beatAt) {
   const ev = { id: nextEventId++, chord, targetTimeMs, hit: false, tokens: [] };
   chordEvents.push(ev);
 
+  // v34: chord label (one per chord event)
+  if (chordTicker) {
+    const lab = document.createElement("div");
+    lab.className = "chordLabel";
+    lab.textContent = chord;
+    chordTicker.appendChild(lab);
+    ev.labelEl = lab;
+    ev.labelStartX = null;
+    ev.labelTravelMs = null;
+  }
+
   for (let laneIndex = 0; laneIndex < 4; laneIndex++) {
     const fret = def.frets[laneIndex];
     const finger = def.fingers[laneIndex];
@@ -324,13 +335,10 @@ function spawnChordEvent(chord, beatAt) {
     const el = document.createElement("div");
     el.className = "fingerDot";
     el.innerHTML = `<span class="fingerChar">${FINGERS[finger] || "?"}</span>`;
+    laneEl.appendChild(el);
+
     const laneW = laneEl.getBoundingClientRect().width;
     const startX = laneW + 80;
-    // exp-neck-v2: set initial transform BEFORE append to prevent iOS 1-frame flash at x=0
-    el.style.transform = `translate3d(${startX}px,0,0)`;
-    el.style.visibility = 'hidden';
-    laneEl.appendChild(el);
-    requestAnimationFrame(() => { el.style.visibility = 'visible'; });
     const targetX = fretToX(laneEl, fret);
     // ★出現時点からフレット差（例: F=1F/2F, G=2F/3F）を見せるためのオフセット
     //   到達点(targetX)は変えないので判定位置はそのまま
@@ -353,6 +361,11 @@ function spawnChordEvent(chord, beatAt) {
     };
     tokens.push(token);
     ev.tokens.push(token);
+    // v34: label follows the chord timing using the first token as reference
+    if (ev.labelEl && ev.labelStartX == null) {
+      ev.labelStartX = startX;
+      ev.labelTravelMs = travelMs;
+    }
   }
 }
 
@@ -510,6 +523,22 @@ function tick(ts) {
   // 判定ライン自体も「今弾いて」状態で発光
   if (laneGrid) laneGrid.classList.toggle("nowReady", nowReady);
 
+
+
+// v34: update chord labels (follow same timing as tokens)
+for (let j = chordEvents.length - 1; j >= 0; j--) {
+  const ev = chordEvents[j];
+  if (!ev || !ev.labelEl || ev.labelStartX == null || ev.labelTravelMs == null) continue;
+  const timeToTarget2 = ev.targetTimeMs - songPosMs;
+  const p2 = 1 - timeToTarget2 / ev.labelTravelMs;
+  const xBase2 = ev.labelStartX + p2 * (HIT_X - ev.labelStartX);
+  ev.labelEl.style.transform = `translateX(${xBase2}px) translateY(-50%)`;
+  if (xBase2 < HIT_X - 160) {
+    // remove when passed
+    try { ev.labelEl.remove(); } catch(e) {}
+    ev.labelEl = null;
+  }
+}
   rafId = requestAnimationFrame(tick);
 }
 
