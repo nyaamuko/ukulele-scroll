@@ -698,84 +698,70 @@ body{
 }
 
 
-/* ==============================
-   v34
-   - フレット 1〜13 表示（縦線分割も13）
-   - 指〇と同タイミングで「コード名」を真下に流す（表示用）
-   - 既存CSSは維持し、末尾追記で上書き
-============================== */
-
-/* 13分割：1F〜13F（HIT_X=26pxを起点に等間隔） */
-.lane.fretGrid{
-  background-size: calc((100% - 26px) / 13) 100% !important;
+/* v35: mobile neck + fret numbers + chord track */
+#neckWrap{
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
-
-/* フレット番号（1〜13） */
-.fretNumbers{
+#fretNumbers{
   position:absolute;
-  left:0;
-  right:0;
+  left: 0;
+  right: 0;
   top: 6px;
   height: 18px;
   display:flex;
-  padding-left: 26px; /* 1F位置 */
+  justify-content: space-between;
+  padding: 0 24px 0 70px; /* leave room for left lane labels */
+  pointer-events:none;
+  z-index: 5;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.75);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+}
+#fretNumbers .fnum{
+  width: 1px;
+  transform: translateX(-0.5px);
+}
+#chordTrack{
+  position:absolute;
+  left: 70px;
+  right: 18px;
+  bottom: 10px;
+  height: 26px;
   pointer-events:none;
   z-index: 6;
-  gap:0;
-}
-.fretNumbers span{
-  flex:1;
-  text-align:center;
-  font-weight: 800;
-  font-size: 12px;
-  color: rgba(255,255,255,.92);
-  text-shadow: 0 1px 0 rgba(0,0,0,.45);
-}
-
-/* 弦は白太め、フレットは白細め（指定） */
-.lane::before{
-  height: 5px !important;
-  background: rgba(255,255,255,0.95) !important;
-}
-.lane.fretGrid{
-  /* 既存は2px線。色だけ白系に安定 */
-  background-image: linear-gradient(
-    to right,
-    rgba(255,255,255,.22) 0px,
-    rgba(255,255,255,.22) 2px,
-    transparent 2px,
-    transparent 100%
-  ) !important;
-}
-
-/* ネック下のコード表示：指〇と一緒に流れる（真下） */
-.chordTicker{
-  position:absolute;
-  left:0;
-  right:0;
-  bottom: 96px; /* laneGridの下端（hitLine直上） */
-  height: 34px;
-  pointer-events:none;
-  z-index: 7;
+  overflow: hidden;
 }
 .chordLabel{
   position:absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-weight: 900;
-  font-size: 22px;
-  letter-spacing: 1px;
-  color: rgba(255,255,255,.96);
-  text-shadow:
-    0 2px 0 rgba(0,0,0,.55),
-    0 0 10px rgba(0,0,0,.35);
-  padding: 2px 10px;
-  border-radius: 12px;
-  background: rgba(0,0,0,.18);
-  border: 2px solid rgba(255,255,255,.22);
+  top: 0;
+  left: 0;
+  transform: translateX(100%);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.92);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-/* 上部HUD：SCORE/BPM/RUNを横1列、間隔少し詰める */
-.hud{
-  gap: 10px !important;
+/* hide subtitle "DDR Chords" on mobile */
+@media (max-width: 640px){
+  .subBadge{ display:none !important; }
+  /* stack layout: top stats -> neck -> controls */
+  .appLayout{ flex-direction: column !important; gap: 12px !important; }
+  .leftPane{ width: 100% !important; }
+  .rightPane{ width: 100% !important; }
+  /* make neck about 28vh */
+  .laneWrap{ height: 28vh !important; min-height: 200px; }
+  /* remove big HIT box but keep space (future) */
+  .hitArea{ display:none !important; }
+  .afterNeckSpacer{ height: 10px; }
 }
+

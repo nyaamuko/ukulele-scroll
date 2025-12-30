@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Ukeflow DDR Chords</title>
-  <link rel="stylesheet" href="./styles.css?v=v34" />
+  <link rel="stylesheet" href="./styles.css?v=v22" />
 </head>
 <body>
   <div id="app" class="app">
@@ -15,12 +15,13 @@
       <div class="brand">
         <span class="logo">🎸</span>
         <span class="title">Ukeflow</span>
-        
+        <span class="subtitle">DDR Chords</span>
       </div>
 
       <div class="hud">
         <div class="pill"><span class="k">SCORE</span><span id="score" class="v">0</span></div>
-<div class="pill"><span class="k">BPM</span><span id="bpm" class="v">90</span></div>
+        <div class="pill"><span class="k">COMBO</span><span id="combo" class="v">0</span></div>
+        <div class="pill"><span class="k">BPM</span><span id="bpm" class="v">90</span></div>
         <div class="pill"><span class="k">RUN</span><span id="run" class="v">OFF</span></div>
       </div>
     </header>
@@ -28,8 +29,6 @@
     <main class="main">
       <section class="playfield" aria-label="DDR風レーン">
         <div class="laneGrid" id="laneGrid"></div>
-        <div class="fretNumbers" id="fretNumbers" aria-hidden="true"></div>
-        <div class="chordTicker" id="chordTicker" aria-hidden="true"></div>
 
         <div class="hitLine" id="hitLine">
           <div class="hitGlow"></div>
@@ -99,11 +98,11 @@
 
     <footer class="footer">
       <div class="small">iPhone縦画面前提。ホーム画面追加で“アプリっぽく”使えます。</div>
-      <div id="versionBadge" class="versionBadge">v34</div>
+      <div id="versionBadge" class="versionBadge">v22</div>
 
     </footer>
   </div>
 
-  <script src="./app.js?v=v34"></script>
+  <script src="./app.js?v=v22"></script>
 </body>
 </html>
