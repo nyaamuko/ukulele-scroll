@@ -7,7 +7,6 @@
 const $ = (id) => document.getElementById(id);
 
 const laneGrid = $("laneGrid");
-const chordTrack = $("chordTrack");
 const pads = $("pads");
 const floating = $("floating");
 
@@ -28,10 +27,10 @@ const customProg = $("customProg");
 
 // 上から 1弦(A) → 2弦(E) → 3弦(C) → 4弦(G)
 const LANES = [
-  { key: "A", hint: "1弦(A)" },
-  { key: "E", hint: "2弦(E)" },
-  { key: "C", hint: "3弦(C)" },
-  { key: "G", hint: "4弦(G)" },
+  { key: "1", hint: "1弦" },
+  { key: "2", hint: "2弦" },
+  { key: "3", hint: "3弦" },
+  { key: "4", hint: "4弦" },
 ];
 
 const FINGERS = { I: "人", M: "中", R: "薬", P: "小" };
@@ -120,7 +119,9 @@ let spawnAheadBeats = 3.0;
 let chordEvents = []; // {id, chord, targetTimeMs, hit, tokens:[]}
 let nextEventId = 1;
 
-let tokens = []; // {el,laneIndex,startX,targetX,targetTimeMs,travelMs,hit,ready}
+let tokens = [];
+  chordTokens = [];
+let chordTokens = []; // {el,laneIndex,startX,targetX,targetTimeMs,travelMs,hit,ready}
 let nowReady = false; // 「今弾いて」状態（判定ラインの発光用）
 
 function setRun(on) {
@@ -159,19 +160,6 @@ function showFloat(text) {
   }, 700);
 }
 
-
-function buildFretNumbers(){
-  const wrap = document.getElementById("fretNumbers");
-  if(!wrap) return;
-  wrap.innerHTML = "";
-  // 1〜13
-  for(let i=1;i<=13;i++){
-    const s=document.createElement("div");
-    s.className="fnum";
-    s.textContent=String(i);
-    wrap.appendChild(s);
-  }
-}
 function buildLanes() {
   if (!laneGrid) return;
   laneGrid.innerHTML = "";
@@ -263,6 +251,7 @@ function resetGame() {
 
   tokens.forEach((t) => t.el?.remove());
   tokens = [];
+  chordTokens = [];
   chordEvents = [];
   nextEventId = 1;
 
@@ -364,6 +353,19 @@ function spawnChordEvent(chord, beatAt) {
     };
     tokens.push(token);
     ev.tokens.push(token);
+  }
+
+  // Create one chord label that travels with this event (centered under its fingers)
+  if (chordStreamEl) {
+    const activeXs = ev.tokens.map(t => t.targetX);
+    const avgX = activeXs.length ? activeXs.reduce((a,b)=>a+b,0) / activeXs.length : HIT_X;
+    const tag = document.createElement("div");
+    tag.className = "chordTag";
+    tag.textContent = chordName;
+    chordStreamEl.appendChild(tag);
+    const startX = laneW + 80;
+    tag.style.left = startX + "px";
+    chordTokens.push({ el: tag, startAt: now, startX, targetX: avgX, travelMs, done: false });
   }
 }
 
@@ -505,8 +507,6 @@ function tick(ts) {
       }
     }
 
-    }
-
     // 左抜けで消す（表示上のmiss）
     if (!t.hit && x < HIT_X - 120) {
       t.hit = true;
@@ -519,6 +519,22 @@ function tick(ts) {
       tokens.splice(i, 1);
     }
   }
+
+
+  // chord label stream (moves with the same timing as notes)
+  for (const c of chordTokens) {
+    const t = (now - c.startAt) / c.travelMs;
+    const x = c.startX + (c.targetX - c.startX) * Math.min(1, Math.max(0, t));
+    c.el.style.left = x + "px";
+    if (x < HIT_X - 180) c.done = true;
+  }
+  chordTokens = chordTokens.filter((c) => {
+    if (c.done) {
+      c.el.remove();
+      return false;
+    }
+    return true;
+  });
 
   // 判定ライン自体も「今弾いて」状態で発光
   if (laneGrid) laneGrid.classList.toggle("nowReady", nowReady);
@@ -567,7 +583,6 @@ document.addEventListener(
 // 起動
 showFloat("JS OK");
 buildLanes();
-  buildFretNumbers();
 buildPads();
 resetGame();
 
