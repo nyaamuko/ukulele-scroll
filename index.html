@@ -2,104 +2,58 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <meta name="theme-color" content="#111827" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Ukeflow DDR Chords</title>
-  <link rel="stylesheet" href="./styles.css?v=v22" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Ukeflow v22 engine split</title>
+  <link rel="stylesheet" href="styles.css?v=22" />
 </head>
 <body>
-  <div id="app" class="app">
-    <header class="topbar">
-      <div class="brand">
-        <span class="logo">🎸</span>
-        <span class="title">Ukeflow</span></div>
-
+  <div class="app">
+    <header class="top">
       <div class="hud">
-        <div class="pill"><span class="k">SCORE</span><span id="score" class="v">0</span><span id="combo" style="display:none">0</span></div>
-        <div class="pill"><span class="k">BPM</span><span id="bpm" class="v">90</span></div>
-        <div class="pill"><span class="k">RUN</span><span id="run" class="v">OFF</span></div>
+        <div class="hudItem">SCORE <span id="score">0</span></div>
+        <div class="hudItem">COMBO <span id="combo">0</span></div>
+        <div class="hudItem">BPM <span id="bpm">90</span></div>
+        <div class="hudItem">RUN <span id="run">OFF</span></div>
+      </div>
+
+      <div class="controls">
+        <button id="btnStart" class="btn">▶ START</button>
+        <button id="btnPause" class="btn" disabled>⏸ PAUSE</button>
+        <button id="btnReset" class="btn">↺ RESET</button>
+      </div>
+
+      <div class="settings">
+        <label>Course
+          <select id="course">
+            <option value="lemon_basic">lemon_basic</option>
+            <option value="gcea">gcea</option>
+            <option value="custom">custom</option>
+          </select>
+        </label>
+        <label>Speed
+          <input id="speed" type="range" min="0.7" max="1.8" step="0.05" value="1.0" />
+        </label>
+        <label>BPM
+          <input id="bpmInput" type="number" min="60" max="200" value="90" />
+        </label>
+        <label>Window(ms)
+          <input id="windowInput" type="number" min="60" max="280" value="140" />
+        </label>
+        <label>Custom
+          <input id="customProg" type="text" placeholder="C,Am,F,G" />
+        </label>
       </div>
     </header>
 
     <main class="main">
-      <section class="playfield" aria-label="DDR風レーン">
-        <div class="laneGrid" id="laneGrid"></div>
-
-        <div class="hitLine" id="hitLine">
-          <div class="hitGlow"></div>
-          <div class="hitText">HIT!</div>
-        </div>
-
-        <div class="floating" id="floating"></div>
-      </section>
-
-      <section class="panel" aria-label="操作パネル">
-        <div class="panelCard">
-          <div class="row">
-            <button id="btnStart" class="btn btn--green" onclick="window.__UKEFLOW && window.__UKEFLOW.start()">▶ START</button>
-            <button id="btnPause" class="btn btn--blue" disabled onclick="window.__UKEFLOW && window.__UKEFLOW.pause()">⏸ PAUSE</button>
-            <button id="btnReset" class="btn btn--orange" onclick="window.__UKEFLOW && window.__UKEFLOW.reset()">↻ RESET</button>
-          </div>
-
-          <div class="row row--tight">
-            <label class="field">
-              <span>コース</span>
-              <select id="course">
-                <option value="gc" selected>G → C（初心者）</option>
-                <option value="gcea">G → C → E → A（王道）</option>
-                <option value="c_am_f_g">C → Am → F → G（定番）</option>
-                <option value="custom">カスタム（下で編集）</option>
-              </select>
-            </label>
-
-            <label class="field">
-              <span>スピード</span>
-              <input id="speed" type="range" min="0.7" max="1.6" value="1.0" step="0.05"/>
-            </label>
-          </div>
-
-          <div class="row row--tight">
-            <label class="field">
-              <span>BPM</span>
-              <input id="bpmInput" type="number" min="60" max="160" value="90"/>
-            </label>
-
-            <label class="field">
-              <span>判定（ms）</span>
-              <input id="windowInput" type="number" min="60" max="220" value="130"/>
-            </label>
-          </div>
-
-          <div class="row">
-            <label class="field field--full">
-              <span>カスタム進行（例：G,C,Em,D）</span>
-              <input id="customProg" type="text" value="G,C,E,A"/>
-            </label>
-          </div>
-
-          <div class="hintBox">
-            <div class="hintTitle">遊び方</div>
-            <ul class="hintList">
-              <li>上から落ちてくる「コード」を、下のHITラインでタイミングよくタップ</li>
-              <li>タップしたレーン＝コード。合ってれば OK / ずれると MISS</li>
-              <li>まずは <b>G/C</b> の2レーンで慣れてから4レーンへ</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="pads" id="pads" aria-label="タップパッド"></div>
-      </section>
+      <div id="laneGrid" class="laneGrid"></div>
+      <div id="pads" class="pads"></div>
     </main>
 
-    <footer class="footer">
-      <div class="small">iPhone縦画面前提。ホーム画面追加で“アプリっぽく”使えます。</div>
-      <div id="versionBadge" class="versionBadge">v22</div>
-
-    </footer>
+    <div id="floating" class="floating">-</div>
   </div>
 
-  <script src="./app.js?v=v22"></script>
+  <script src="engine/engine.js?v=22"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>

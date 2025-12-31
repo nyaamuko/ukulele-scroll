@@ -1,8 +1,5 @@
-// Ukeflow - v18 (コード単位で同時到達 / 指〇ドット / 指板っぽい弦+フレット)
-// A: C→Am→F→G を「コード単位」で流す（コード間に間隔）
-//    ＝同じコード内の指は "同時" に判定ラインへ到達（フレット差は保持）
-// B: BOXではなく、弦の横線上を指〇が流れる（フィンガーボード風）
-//    判定ラインに来たら指〇が光る（今弾いて！が分かる）
+// app.js (UI + engine wiring)
+// Ukeflow - v22 (engine split)
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,10 +24,10 @@ const customProg = $("customProg");
 
 // 上から 1弦(A) → 2弦(E) → 3弦(C) → 4弦(G)
 const LANES = [
-  { key: "1", hint: "1弦" },
-  { key: "2", hint: "2弦" },
-  { key: "3", hint: "3弦" },
-  { key: "4", hint: "4弦" },
+  { key: "A", hint: "1弦(A)" },
+  { key: "E", hint: "2弦(E)" },
+  { key: "C", hint: "3弦(C)" },
+  { key: "G", hint: "4弦(G)" },
 ];
 
 const FINGERS = { I: "人", M: "中", R: "薬", P: "小" };
@@ -46,14 +43,12 @@ const CHORDS = {
 
 // ★コースは「コード名」と「拍数」を持つ（コード間の間隔がこのbeatsで決まる）
 const COURSES = {
-  // 要望：C→Am→F→G（定番）
   lemon_basic: [
     { chord: "C", beats: 2 },
     { chord: "Am", beats: 2 },
     { chord: "F", beats: 2 },
     { chord: "G", beats: 2 },
   ],
-  // 例
   gcea: [
     { chord: "Am", beats: 2 },
     { chord: "G", beats: 2 },
@@ -89,46 +84,11 @@ function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n));
 }
 
-let running = false;
-let paused = false;
-let score = 0;
-let combo = 0;
-
-let rafId = null;
-let lastTs = 0;
-let songPosMs = 0;
-
-let bpm = 90;
-let flowSpeed = 1.0;
-let hitWindowMs = 140;
-let beatMs = 60000 / bpm;
-
-// 判定ライン（左端付近）
-const HIT_X = 26;
-
-// 見せたいフレット数（縦線を描く）
-const FRET_COUNT = 9;
-const RIGHT_PADDING = 24;
-
-// 譜面（[{chord, beats}]）
-let scoreData = COURSES.lemon_basic.slice();
-let stepIdx = 0;
-let nextSpawnBeat = 0;
-let spawnAheadBeats = 3.0;
-
-let chordEvents = []; // {id, chord, targetTimeMs, hit, tokens:[]}
-let nextEventId = 1;
-
-let tokens = [];
-  chordTokens = [];
-let chordTokens = []; // {el,laneIndex,startX,targetX,targetTimeMs,travelMs,hit,ready}
-let nowReady = false; // 「今弾いて」状態（判定ラインの発光用）
-
 function setRun(on) {
   if (runEl) runEl.textContent = on ? "ON" : "OFF";
 }
 
-function setHUD() {
+function setHUD({ score, combo, bpm, running, paused }) {
   scoreEl.textContent = String(score);
   comboEl.textContent = String(combo);
   bpmEl.textContent = String(bpm);
@@ -160,6 +120,22 @@ function showFloat(text) {
   }, 700);
 }
 
+// 判定ライン（左端付近）
+const HIT_X = 26;
+
+// 見せたいフレット数（縦線を描く）
+const FRET_COUNT = 9;
+const RIGHT_PADDING = 24;
+
+// フレット番号→X座標（等間隔）
+function fretToX(laneEl, fret) {
+  const w = laneEl.getBoundingClientRect().width;
+  const usable = Math.max(100, w - HIT_X - RIGHT_PADDING);
+  const step = usable / (FRET_COUNT + 1);
+  const x1 = HIT_X + step; // 1F
+  return x1 + (fret - 1) * step;
+}
+
 function buildLanes() {
   if (!laneGrid) return;
   laneGrid.innerHTML = "";
@@ -174,8 +150,7 @@ function buildLanes() {
     header.innerHTML = `<div class="laneLabel">${l.key}</div><div class="laneHint">${l.hint}</div>`;
     lane.appendChild(header);
 
-    // どの弦をタップしてもSTRUM
-    bindTap(lane, () => strum(), { preventDefault: true });
+    bindTap(lane, () => engine.handleInput({ type: "STRUM" }), { preventDefault: true });
 
     laneGrid.appendChild(lane);
   });
@@ -189,7 +164,7 @@ function buildPads() {
   str.className = "btn btn--green btn--strum";
   str.id = "btnStrum";
   str.textContent = "🎵 STRUM";
-  bindTap(str, () => strum(), { preventDefault: true });
+  bindTap(str, () => engine.handleInput({ type: "STRUM" }), { preventDefault: true });
   pads.appendChild(str);
 
   const next = document.createElement("div");
@@ -198,17 +173,15 @@ function buildPads() {
   pads.appendChild(next);
 }
 
-function setNextChordLabel() {
+function setNextChordLabel(chordText) {
   const el = $("nextChord");
   if (!el) return;
-  const step = scoreData[stepIdx % scoreData.length];
-  el.textContent = step?.chord || "-";
+  el.textContent = chordText || "-";
 }
 
 function resolveScore() {
   const v = courseSel?.value || "lemon_basic";
 
-  // 既存セレクトの value と一致しない場合もfallback
   if (COURSES[v]) return COURSES[v].slice();
 
   if (v === "custom") {
@@ -216,7 +189,6 @@ function resolveScore() {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    // beatsは一旦2固定（後でUIで beats 入れられるように拡張）
     const steps = arr.map((ch) => ({ chord: ch, beats: 2 }));
     return steps.length ? steps : COURSES.lemon_basic.slice();
   }
@@ -224,123 +196,52 @@ function resolveScore() {
   return COURSES.lemon_basic.slice();
 }
 
-// フレット番号→X座標（等間隔）
-function fretToX(laneEl, fret) {
-  const w = laneEl.getBoundingClientRect().width;
-  const usable = Math.max(100, w - HIT_X - RIGHT_PADDING);
-  const step = usable / (FRET_COUNT + 1);
-  const x1 = HIT_X + step; // 1F
-  return x1 + (fret - 1) * step;
-}
+// ---- engine adapter ----
+const adapter = {
+  HIT_X,
 
-function resetGame() {
-  stopLoop();
-  running = false;
-  paused = false;
+  getChordDef: (chord) => CHORDS[chord] || null,
 
-  score = 0;
-  combo = 0;
+  getDefaultScoreData: () => COURSES.lemon_basic.slice(),
 
-  bpm = clamp(parseInt(bpmInput?.value || "90", 10), 60, 200);
-  beatMs = 60000 / bpm;
-  flowSpeed = clamp(parseFloat(speedRange?.value || "1.0"), 0.7, 1.8);
-  hitWindowMs = clamp(parseInt(windowInput?.value || "140", 10), 60, 280);
+  onHUD: (s) => setHUD(s),
 
-  scoreData = resolveScore();
-  stepIdx = 0;
+  onRun: (on) => setRun(on),
 
-  tokens.forEach((t) => t.el?.remove());
-  tokens = [];
-  chordTokens = [];
-  chordEvents = [];
-  nextEventId = 1;
+  onFloat: (text) => showFloat(text),
 
-  songPosMs = 0;
-  nextSpawnBeat = 0;
-  nowReady = false;
+  onNextChord: (ch) => setNextChordLabel(ch),
 
-  if (btnPause) {
-    btnPause.disabled = true;
-    btnPause.textContent = "⏸ PAUSE";
-  }
-  if (btnStart) btnStart.disabled = false;
+  onFlashPads: () => flash(pads),
 
-  setHUD();
-  setNextChordLabel();
-  showFloat("READY!");
-}
+  onNowReady: (isReady) => {
+    if (laneGrid) laneGrid.classList.toggle("nowReady", !!isReady);
+  },
 
-function startGame() {
-  if (running) return;
-  resetGame();
-  running = true;
-  paused = false;
-
-  if (btnPause) btnPause.disabled = false;
-  if (btnStart) btnStart.disabled = true;
-
-  setHUD();
-  showFloat("START!");
-  startLoop();
-}
-
-function togglePause() {
-  if (!running) return;
-  paused = !paused;
-  if (btnPause) btnPause.textContent = paused ? "▶ RESUME" : "⏸ PAUSE";
-  setHUD();
-  if (!paused) {
-    lastTs = performance.now();
-    startLoop();
-  }
-}
-
-function stopLoop() {
-  if (rafId) cancelAnimationFrame(rafId);
-  rafId = null;
-  lastTs = 0;
-}
-
-function startLoop() {
-  if (rafId) cancelAnimationFrame(rafId);
-  rafId = requestAnimationFrame(tick);
-}
-
-// ★コードイベント生成：同じコード内の指は "同じ targetTimeMs"
-function spawnChordEvent(chord, beatAt) {
-  const def = CHORDS[chord];
-  if (!def) return;
-
-  const targetTimeMs = beatAt * beatMs;
-
-  const ev = { id: nextEventId++, chord, targetTimeMs, hit: false, tokens: [] };
-  chordEvents.push(ev);
-
-  for (let laneIndex = 0; laneIndex < 4; laneIndex++) {
-    const fret = def.frets[laneIndex];
-    const finger = def.fingers[laneIndex];
-    if (!fret || fret <= 0) continue;
-
+  spawnToken: ({ laneIndex, fret, finger, targetTimeMs, travelMs }) => {
     const laneEl = laneGrid?.children?.[laneIndex];
-    if (!laneEl) continue;
+    if (!laneEl) return null;
 
     const el = document.createElement("div");
     el.className = "fingerDot";
     el.innerHTML = `<span class="fingerChar">${FINGERS[finger] || "?"}</span>`;
-    laneEl.appendChild(el);
 
     const laneW = laneEl.getBoundingClientRect().width;
     const startX = laneW + 80;
+
+    el.style.transform = `translate3d(${startX}px,0,0)`;
+    el.style.visibility = "hidden";
+    laneEl.appendChild(el);
+    requestAnimationFrame(() => {
+      el.style.visibility = "visible";
+    });
+
     const targetX = fretToX(laneEl, fret);
-    // ★出現時点からフレット差（例: F=1F/2F, G=2F/3F）を見せるためのオフセット
-    //   到達点(targetX)は変えないので判定位置はそのまま
+
     const x1 = fretToX(laneEl, 1);
-    const fretOffset = (targetX - x1);
+    const fretOffset = targetX - x1;
 
-    // 先読み分だけ飛ばして "同時に" 到達するように travelMs を共通化
-    const travelMs = (beatMs * spawnAheadBeats) / flowSpeed;
-
-    const token = {
+    return {
       el,
       laneIndex,
       startX,
@@ -351,198 +252,77 @@ function spawnChordEvent(chord, beatAt) {
       hit: false,
       ready: false,
     };
-    tokens.push(token);
-    ev.tokens.push(token);
-  }
+  },
 
-  // Create one chord label that travels with this event (centered under its fingers)
-  if (chordStreamEl) {
-    const activeXs = ev.tokens.map(t => t.targetX);
-    const avgX = activeXs.length ? activeXs.reduce((a,b)=>a+b,0) / activeXs.length : HIT_X;
-    const tag = document.createElement("div");
-    tag.className = "chordTag";
-    tag.textContent = chordName;
-    chordStreamEl.appendChild(tag);
-    const startX = laneW + 80;
-    tag.style.left = startX + "px";
-    chordTokens.push({ el: tag, startAt: now, startX, targetX: avgX, travelMs, done: false });
-  }
-}
-
-function judge(deltaMs) {
-  const ad = Math.abs(deltaMs);
-  if (ad <= hitWindowMs * 0.45) return "PERFECT";
-  if (ad <= hitWindowMs * 0.85) return "GREAT";
-  if (ad <= hitWindowMs) return "OK";
-  return "MISS";
-}
-
-function award(result) {
-  if (result === "PERFECT") {
-    score += 300;
-    combo += 1;
-    showFloat("PERFECT✨");
-  } else if (result === "GREAT") {
-    score += 200;
-    combo += 1;
-    showFloat("GREAT!");
-  } else if (result === "OK") {
-    score += 120;
-    combo += 1;
-    showFloat("OK");
-  } else {
-    combo = 0;
-    showFloat("MISS…");
-  }
-  setHUD();
-}
-
-// STRUM（弾く）判定：最も近い未ヒットのコードイベントを判定（コード単位）
-function strum() {
-  flash(pads);
-
-  if (!running || paused) {
-    showFloat("STRUM");
-    return;
-  }
-
-  const nowMs = songPosMs;
-
-  let best = null;
-  let bestAbs = Infinity;
-
-  for (const ev of chordEvents) {
-    if (ev.hit) continue;
-    const delta = nowMs - ev.targetTimeMs;
-    const ad = Math.abs(delta);
-    if (ad < bestAbs) {
-      bestAbs = ad;
-      best = { ev, delta };
-    }
-  }
-
-  if (!best) {
-    award("MISS");
-    return;
-  }
-
-  const res = judge(best.delta);
-  if (res === "MISS") {
-    award("MISS");
-    return;
-  }
-
-  best.ev.hit = true;
-  for (const t of best.ev.tokens) {
-    t.hit = true;
-    if (t.el) {
-      t.el.classList.remove("ready");
-      t.el.classList.add("hit");
-      setTimeout(() => t.el.remove(), 140);
-    }
-  }
-
-  award(res);
-  setNextChordLabel();
-}
-
-function tick(ts) {
-  if (!running) return;
-  if (paused) {
-    stopLoop();
-    return;
-  }
-
-  if (!lastTs) lastTs = ts;
-  const dt = ts - lastTs;
-  lastTs = ts;
-  songPosMs += dt;
-
-  // 先読み生成：コード単位で生成、beats分だけ間隔を空ける
-  const currentBeat = songPosMs / beatMs;
-
-  while (nextSpawnBeat <= currentBeat + spawnAheadBeats) {
-    const step = scoreData[stepIdx % scoreData.length];
-    const chord = step?.chord;
-    const beats = clamp(parseFloat(step?.beats ?? 2), 0.5, 16);
-
-    spawnChordEvent(chord, nextSpawnBeat + spawnAheadBeats);
-
-    stepIdx++;
-    nextSpawnBeat += beats; // ★ここが「Cの後に間隔をあけてAm…」の正体
-    setNextChordLabel();
-  }
-
-  // トークン移動（右→左） + 判定ライン付近で発光
-  nowReady = false;
-
-  for (let i = tokens.length - 1; i >= 0; i--) {
-    const t = tokens[i];
-    if (!t.el) {
-      tokens.splice(i, 1);
-      continue;
-    }
-
-    const timeToTarget = t.targetTimeMs - songPosMs;
-    const p = 1 - timeToTarget / t.travelMs; // 0→1
-    const xBase = t.startX + p * (t.targetX - t.startX);
-    // ★同時に出現（startX共通）しつつ、出現直後からフレット差を見せる
-    //    p=0(出現直後)で最大、p→1(判定付近)で0に収束
-    const x = xBase + (1 - p) * (t.fretOffset || 0);
-
+  renderToken: (t, x) => {
+    if (!t?.el) return;
     t.el.style.transform = `translateX(${x}px) translateY(-50%)`;
+  },
 
-    // ★判定ラインに来たら光る（今弾いて！）
-    const near = Math.abs(x - HIT_X) <= 10;
-    if (!t.hit && near) {
-      nowReady = true;
-      if (!t.ready) {
-        t.ready = true;
-        t.el.classList.add("ready");
-      }
-    } else {
-      if (t.ready) {
-        t.ready = false;
-        t.el.classList.remove("ready");
-      }
-    }
+  onTokenReady: (t, isReady) => {
+    if (!t?.el) return;
+    t.el.classList.toggle("ready", !!isReady);
+  },
 
-    // 左抜けで消す（表示上のmiss）
-    if (!t.hit && x < HIT_X - 120) {
-      t.hit = true;
-      t.el.classList.remove("ready");
-      t.el.classList.add("miss");
-      setTimeout(() => t.el.remove(), 160);
-    }
+  onTokenHit: (t) => {
+    if (!t?.el) return;
+    t.el.classList.remove("ready");
+    t.el.classList.add("hit");
+    setTimeout(() => t.el?.remove(), 140);
+  },
 
-    if (t.hit && x < HIT_X - 170) {
-      tokens.splice(i, 1);
-    }
-  }
+  onTokenMiss: (t) => {
+    if (!t?.el) return;
+    t.el.classList.remove("ready");
+    t.el.classList.add("miss");
+    setTimeout(() => t.el?.remove(), 160);
+  },
 
+  removeToken: (t) => {
+    try {
+      t?.el?.remove();
+    } catch (_) {}
+  },
 
-  // chord label stream (moves with the same timing as notes)
-  for (const c of chordTokens) {
-    const t = (now - c.startAt) / c.travelMs;
-    const x = c.startX + (c.targetX - c.startX) * Math.min(1, Math.max(0, t));
-    c.el.style.left = x + "px";
-    if (x < HIT_X - 180) c.done = true;
-  }
-  chordTokens = chordTokens.filter((c) => {
-    if (c.done) {
-      c.el.remove();
-      return false;
-    }
-    return true;
-  });
+  isTokenAlive: (t) => !!t?.el,
+};
 
-  // 判定ライン自体も「今弾いて」状態で発光
-  if (laneGrid) laneGrid.classList.toggle("nowReady", nowReady);
-
-  rafId = requestAnimationFrame(tick);
-}
+// ---- create engine ----
+const engine = window.UkeflowEngine.createEngine(adapter);
 
 // ---- controls ----
+function resetGame() {
+  const bpm = clamp(parseInt(bpmInput?.value || "90", 10), 60, 200);
+  const flowSpeed = clamp(parseFloat(speedRange?.value || "1.0"), 0.7, 1.8);
+  const hitWindowMs = clamp(parseInt(windowInput?.value || "140", 10), 60, 280);
+  const scoreData = resolveScore();
+
+  if (btnPause) {
+    btnPause.disabled = true;
+    btnPause.textContent = "⏸ PAUSE";
+  }
+  if (btnStart) btnStart.disabled = false;
+
+  engine.reset({ bpm, flowSpeed, hitWindowMs, scoreData });
+}
+
+function startGame() {
+  resetGame();
+
+  if (btnPause) btnPause.disabled = false;
+  if (btnStart) btnStart.disabled = true;
+
+  engine.handleInput({ type: "START" });
+}
+
+function togglePause() {
+  if (!engine.isRunning()) return;
+
+  engine.handleInput({ type: "PAUSE_TOGGLE" });
+
+  if (btnPause) btnPause.textContent = engine.isPaused() ? "▶ RESUME" : "⏸ PAUSE";
+}
+
 bindTap(btnStart, startGame);
 bindTap(btnPause, togglePause);
 bindTap(btnReset, resetGame);
@@ -551,18 +331,11 @@ bindTap(btnReset, resetGame);
 [bpmInput, speedRange, windowInput, customProg, courseSel].forEach((el) => {
   if (!el) return;
   el.addEventListener("change", () => {
-    bpm = clamp(parseInt(bpmInput?.value || "90", 10), 60, 200);
-    beatMs = 60000 / bpm;
-    flowSpeed = clamp(parseFloat(speedRange?.value || "1.0"), 0.7, 1.8);
-    hitWindowMs = clamp(parseInt(windowInput?.value || "140", 10), 60, 280);
+    const bpm = clamp(parseInt(bpmInput?.value || "90", 10), 60, 200);
     bpmEl.textContent = String(bpm);
 
-    // コース変更は停止中に即反映
-    if (!running) {
-      scoreData = resolveScore();
-      stepIdx = 0;
-      nextSpawnBeat = 0;
-      setNextChordLabel();
+    if (!engine.isRunning()) {
+      resetGame();
     }
     showFloat("SET!");
   });
@@ -593,4 +366,4 @@ window.addEventListener("error", (e) => {
   } catch (_) {}
 });
 
-window.__UKEFLOW = { start: startGame, pause: togglePause, reset: resetGame, chords: CHORDS };
+window.__UKEFLOW = { start: startGame, pause: togglePause, reset: resetGame, chords: CHORDS, engine };
