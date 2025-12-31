@@ -165,6 +165,27 @@ const HIT_X = 26;
 // 見せたいフレット数
 const FRET_COUNT = 12;
 const RIGHT_PADDING = 24;
+const __tokensLive = new Set();
+let __currentChordShown = "-";
+
+function updateChordFromTokens() {
+  // 表示したいのは「いま判定ラインへ向かっているコード」
+  // → 生存トークンのうち、HITラインに最も近いもの（xが最小）を採用
+  let best = null;
+  for (const t of __tokensLive) {
+    if (!t || !t.el || t.hit) continue;
+    if (typeof t.x !== "number") continue;
+    // 画面外(左へ消えた)は無視
+    if (t.x < -120) continue;
+    if (!best || t.x < best.x) best = t;
+  }
+  const chord = best?.chordName || "-";
+  if (chord !== __currentChordShown) {
+    __currentChordShown = chord;
+    setNextChordLabel(chord); // 表示枠は NEXT のままでも、中身は「現在のコード」
+  }
+}
+
 
 // フレット番号→X座標（等間隔）
 function fretToX(laneEl, fret) {
@@ -293,7 +314,7 @@ const adapter = {
     const x1 = fretToX(laneEl, 1);
     const fretOffset = targetX - x1;
 
-    return {
+    const obj = {
       el,
       laneIndex,
       startX,
@@ -303,12 +324,21 @@ const adapter = {
       travelMs,
       hit: false,
       ready: false,
+      chordName: chord || "-",
+      x: null,
     };
+
+    __tokensLive.add(obj);
+    // 初回spawn時は即更新（右から出た瞬間の表示）
+    updateChordFromTokens();
+    return obj;
   },
 
   renderToken: (t, x) => {
     if (!t?.el) return;
+    t.x = x;
     t.el.style.transform = `translateX(${x}px) translateY(-50%)`;
+    updateChordFromTokens();
   },
 
   onTokenReady: (t, isReady) => {
@@ -333,7 +363,9 @@ const adapter = {
   },
 
   removeToken: (t) => {
+    try { __tokensLive.delete(t); } catch (_) {}
     try { t?.el?.remove(); } catch (_) {}
+    updateChordFromTokens();
   },
 
   isTokenAlive: (t) => !!t?.el,

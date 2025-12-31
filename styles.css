@@ -313,3 +313,7 @@ body{margin:0;background:radial-gradient(1200px 800px at 50% 0%, #1b2a4a 0%, var
 /* Reserve area for NEXT; keep but slightly slimmer */
 .nextInBoard{height:50px;}
 .nextInBoardChord{font-size:22px;min-width:56px;}
+
+
+/* B fix: show circle only (hide finger text) */
+.fingerChar{display:none !important;}
