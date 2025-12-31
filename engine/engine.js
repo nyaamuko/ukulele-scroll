@@ -59,6 +59,20 @@
       adapter.onNextChord?.(step?.chord || "-");
     }
 
+    function getCurrentEvent() {
+      let best = null;
+      for (const ev of chordEvents) {
+        if (ev.hit) continue;
+        if (!best || ev.targetTimeMs < best.targetTimeMs) best = ev;
+      }
+      return best;
+    }
+
+    function setCurrentChordLabel() {
+      const ev = getCurrentEvent();
+      adapter.onCurrentChord?.(ev?.chord || "-");
+    }
+
     function judge(deltaMs) {
       const ad = Math.abs(deltaMs);
       if (ad <= hitWindowMs * 0.45) return "PERFECT";
@@ -169,6 +183,8 @@
 
       award(res);
       setNextChordLabel();
+      setCurrentChordLabel();
+      setCurrentChordLabel();
     }
 
     function stopLoop() {
@@ -206,6 +222,7 @@
         stepIdx++;
         nextSpawnBeat += beats;
         setNextChordLabel();
+      setCurrentChordLabel();
       }
 
       nowReady = false;
@@ -288,6 +305,7 @@
       setHUD();
       setRun(false);
       setNextChordLabel();
+      setCurrentChordLabel();
       showFloat("READY!");
     }
 
@@ -350,4 +368,5 @@
   }
 
   global.UkeflowEngine = { createEngine };
+      setCurrentChordLabel();
 })(window);

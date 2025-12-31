@@ -165,31 +165,23 @@ const HIT_X = 26;
 // 見せたいフレット数
 const FRET_COUNT = 12;
 const RIGHT_PADDING = 24;
-const __tokensLive = new Set();
-let __currentChordShown = "-";
-let __pendingChord = null;
-let __pendingSince = 0;
-const __CHORD_STABLE_MS = 120;
-
-function updateChordFromTokens() {
-  // 画面上で複数コードが重なる（先行spawn）ため、
-  // 「最も左に近い token」ではなく「最も古い chordEventId」を採用する。
-  // これで G→C の間に F が一瞬出る等のチラつきを根絶する。
-  let bestEventId = null;
-  let bestChord = "-";
-
-  for (const t of __tokensLive) {
-    if (!t || !t.el || t.hit) continue;
-    const eid = t.chordEventId || 0;
-    if (bestEventId === null || eid < bestEventId) {
-      bestEventId = eid;
-      bestChord = t.chordName || "-";
-    }
   }
 
+  // --- flicker guard (stable for N ms) ---
   if (bestChord !== __currentChordShown) {
+    const now = performance.now();
+    if (__pendingChord !== bestChord) {
+      __pendingChord = bestChord;
+      __pendingSince = now;
+      return;
+    }
+    if (now - __pendingSince < __CHORD_STABLE_MS) return;
+
     __currentChordShown = bestChord;
+    __pendingChord = null;
     setNextChordLabel(bestChord);
+  } else {
+    __pendingChord = null;
   }
 }
 
@@ -297,12 +289,6 @@ const adapter = {
     const laneEl = laneGrid?.children?.[laneIndex];
     if (!laneEl) return null;
 
-    // ★右から出てきた瞬間に NEXT を更新
-    if (chordEventId && chordEventId !== __lastNextChordEventId) {
-      __lastNextChordEventId = chordEventId;
-      setNextChordLabel(chord);
-    }
-
     const el = document.createElement("div");
     el.className = "fingerDot";
     el.innerHTML = `<span class="fingerChar">${FINGERS[finger] || "?"}</span>`;
@@ -336,9 +322,9 @@ const adapter = {
       x: null,
     };
 
-    __tokensLive.add(obj);
+    
     // 初回spawn時は即更新（右から出た瞬間の表示）
-    updateChordFromTokens();
+    
     return obj;
   },
 
@@ -346,7 +332,7 @@ const adapter = {
     if (!t?.el) return;
     t.x = x;
     t.el.style.transform = `translateX(${x}px) translateY(-50%)`;
-    updateChordFromTokens();
+    
   },
 
   onTokenReady: (t, isReady) => {
@@ -371,9 +357,9 @@ const adapter = {
   },
 
   removeToken: (t) => {
-    try { __tokensLive.delete(t); } catch (_) {}
+    try {  } catch (_) {}
     try { t?.el?.remove(); } catch (_) {}
-    updateChordFromTokens();
+    
   },
 
   isTokenAlive: (t) => !!t?.el,
