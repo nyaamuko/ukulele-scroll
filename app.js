@@ -257,7 +257,7 @@ const adapter = {
   onHUD: (s) => setHUD(s),
   onRun: (on) => setRun(on),
   onFloat: (text) => showFloat(text),
-  onNextChord: (ch) => setNextChordLabel(ch),
+  onNextChord: (_ch) => {}, // NEXTはspawn瞬間で更新する
   onFlashPads: () => flash(pads),
 
   onNowReady: (isReady) => {
