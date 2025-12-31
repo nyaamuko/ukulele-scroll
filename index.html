@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Ukeflow v22 engine split</title>
-  <link rel="stylesheet" href="styles.css?v=22" />
+  <title>Ukeflow v22 - UI Step A</title>
+  <link rel="stylesheet" href="styles.css?v=22a" />
 </head>
 <body>
   <div class="app">
     <header class="top">
-      <div class="hud">
-        <div class="hudItem">SCORE <span id="score">0</span></div>
-        <div class="hudItem">COMBO <span id="combo">0</span></div>
-        <div class="hudItem">BPM <span id="bpm">90</span></div>
-        <div class="hudItem">RUN <span id="run">OFF</span></div>
+      <div class="hudBar">
+        <div class="hudPill">🎸 SCORE <span id="score">0</span></div>
+        <div class="hudPill">COMBO <span id="combo">0</span></div>
+        <div class="hudPill">BPM <span id="bpm">90</span></div>
+        <div class="hudPill">RUN <span id="run">OFF</span></div>
       </div>
 
       <div class="controls">
-        <button id="btnStart" class="btn">▶ START</button>
-        <button id="btnPause" class="btn" disabled>⏸ PAUSE</button>
-        <button id="btnReset" class="btn">↺ RESET</button>
+        <button id="btnStart" class="btn btn--wide">▶ START</button>
+        <button id="btnPause" class="btn btn--wide" disabled>⏸ PAUSE</button>
+        <button id="btnReset" class="btn btn--wide">↺ RESET</button>
       </div>
 
       <div class="settings">
@@ -46,14 +46,29 @@
     </header>
 
     <main class="main">
-      <div id="laneGrid" class="laneGrid"></div>
+      <!-- Step A: Fingerboard view -->
+      <section id="fretboard" class="fretboard">
+        <div class="fretRulerWrap">
+          <div class="hitLine"></div>
+          <div id="fretRuler" class="fretRuler"></div>
+        </div>
+        <div id="laneGrid" class="laneGrid"></div>
+        <div id="nextInBoard" class="nextInBoard"><div class="nextInBoardLabel">NEXT</div><div id="nextChordBoard" class="nextInBoardChord">-</div></div>
+      
+        <div id="hitSticker" class="hitSticker" aria-hidden="true">
+          <div class="hitStickerInner">
+            <div id="hitStickerText" class="hitStickerText">HIT!</div>
+          </div>
+        </div>
+</section>
+
       <div id="pads" class="pads"></div>
     </main>
 
     <div id="floating" class="floating">-</div>
   </div>
 
-  <script src="engine/engine.js?v=22"></script>
-  <script src="app.js?v=22"></script>
+  <script src="engine/engine.js?v=22a"></script>
+  <script src="app.js?v=22a"></script>
 </body>
 </html>

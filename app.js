@@ -1,5 +1,5 @@
 // app.js (UI + engine wiring)
-// Ukeflow - v22 (engine split)
+// Ukeflow - v22 (engine split) - UI Step A: Fingerboard Layout
 
 const $ = (id) => document.getElementById(id);
 
@@ -98,6 +98,8 @@ function setHUD({ score, combo, bpm, running, paused }) {
 function showFloat(text) {
   if (!floating) return;
   floating.textContent = text;
+  const st = mapFloatToSticker(text);
+  if (st) showSticker(st.kind, st.label);
   try {
     if (typeof floating.animate === "function") {
       floating.animate(
@@ -120,20 +122,67 @@ function showFloat(text) {
   }, 700);
 }
 
+// ===== B: Comic HIT sticker =====
+let __stickerTimer = null;
+
+function showSticker(kind, text) {
+  const sticker = $("hitSticker");
+  const txt = $("hitStickerText");
+  if (!sticker || !txt) return;
+
+  txt.textContent = text;
+
+  sticker.classList.remove("perfect","great","ok","miss","show","pop","fade");
+  if (kind) sticker.classList.add(kind);
+  sticker.classList.add("show","pop");
+
+  clearTimeout(__stickerTimer);
+  __stickerTimer = setTimeout(() => {
+    sticker.classList.remove("pop");
+    sticker.classList.add("fade");
+    setTimeout(() => {
+      sticker.classList.remove("show","fade");
+    }, 260);
+  }, 420);
+}
+
+function mapFloatToSticker(text) {
+  if (!text) return null;
+  if (text.includes("PERFECT")) return { kind:"perfect", label:"PERFECT!" };
+  if (text.includes("GREAT"))   return { kind:"great",   label:"GREAT!" };
+  if (text === "OK")            return { kind:"ok",      label:"OK!" };
+  if (text.includes("MISS"))    return { kind:"miss",    label:"MISS..." };
+  if (text === "START!")        return { kind:"great",   label:"START!" };
+  return null;
+}
+
 // 判定ライン（左端付近）
 const HIT_X = 26;
 
-// 見せたいフレット数（縦線を描く）
-const FRET_COUNT = 9;
+// 見せたいフレット数
+const FRET_COUNT = 12;
 const RIGHT_PADDING = 24;
 
 // フレット番号→X座標（等間隔）
 function fretToX(laneEl, fret) {
   const w = laneEl.getBoundingClientRect().width;
-  const usable = Math.max(100, w - HIT_X - RIGHT_PADDING);
+  const usable = Math.max(160, w - HIT_X - RIGHT_PADDING);
   const step = usable / (FRET_COUNT + 1);
   const x1 = HIT_X + step; // 1F
   return x1 + (fret - 1) * step;
+}
+
+function buildFretRuler() {
+  const ruler = $("fretRuler");
+  if (!ruler) return;
+  ruler.innerHTML = "";
+  // 1..12
+  for (let i = 1; i <= FRET_COUNT; i++) {
+    const d = document.createElement("div");
+    d.className = "fretNum";
+    d.textContent = String(i);
+    ruler.appendChild(d);
+  }
 }
 
 function buildLanes() {
@@ -142,14 +191,16 @@ function buildLanes() {
 
   LANES.forEach((l, i) => {
     const lane = document.createElement("div");
-    lane.className = "lane lane--strip fretGrid";
+    lane.className = "lane lane--string fretGrid";
     lane.dataset.index = String(i);
 
+    // 左のラベル（弦名）
     const header = document.createElement("div");
     header.className = "laneHeader";
     header.innerHTML = `<div class="laneLabel">${l.key}</div><div class="laneHint">${l.hint}</div>`;
     lane.appendChild(header);
 
+    // どの弦をタップしてもSTRUM
     bindTap(lane, () => engine.handleInput({ type: "STRUM" }), { preventDefault: true });
 
     laneGrid.appendChild(lane);
@@ -166,17 +217,14 @@ function buildPads() {
   str.textContent = "🎵 STRUM";
   bindTap(str, () => engine.handleInput({ type: "STRUM" }), { preventDefault: true });
   pads.appendChild(str);
-
-  const next = document.createElement("div");
-  next.className = "nextBox";
-  next.innerHTML = `<div class="nextLabel">NEXT</div><div id="nextChord" class="nextChord">-</div>`;
-  pads.appendChild(next);
 }
 
 function setNextChordLabel(chordText) {
-  const el = $("nextChord");
-  if (!el) return;
-  el.textContent = chordText || "-";
+  const v = chordText || "-";
+  const el1 = $("nextChord");
+  if (el1) el1.textContent = v;
+  const el2 = $("nextChordBoard");
+  if (el2) el2.textContent = v;
 }
 
 function resolveScore() {
@@ -201,21 +249,17 @@ const adapter = {
   HIT_X,
 
   getChordDef: (chord) => CHORDS[chord] || null,
-
   getDefaultScoreData: () => COURSES.lemon_basic.slice(),
 
   onHUD: (s) => setHUD(s),
-
   onRun: (on) => setRun(on),
-
   onFloat: (text) => showFloat(text),
-
   onNextChord: (ch) => setNextChordLabel(ch),
-
   onFlashPads: () => flash(pads),
 
   onNowReady: (isReady) => {
-    if (laneGrid) laneGrid.classList.toggle("nowReady", !!isReady);
+    const board = $("fretboard");
+    if (board) board.classList.toggle("nowReady", !!isReady);
   },
 
   spawnToken: ({ laneIndex, fret, finger, targetTimeMs, travelMs }) => {
@@ -237,7 +281,6 @@ const adapter = {
     });
 
     const targetX = fretToX(laneEl, fret);
-
     const x1 = fretToX(laneEl, 1);
     const fretOffset = targetX - x1;
 
@@ -268,6 +311,7 @@ const adapter = {
     if (!t?.el) return;
     t.el.classList.remove("ready");
     t.el.classList.add("hit");
+    t.el.classList.add("burst");
     setTimeout(() => t.el?.remove(), 140);
   },
 
@@ -275,13 +319,12 @@ const adapter = {
     if (!t?.el) return;
     t.el.classList.remove("ready");
     t.el.classList.add("miss");
+    t.el.classList.add("burst");
     setTimeout(() => t.el?.remove(), 160);
   },
 
   removeToken: (t) => {
-    try {
-      t?.el?.remove();
-    } catch (_) {}
+    try { t?.el?.remove(); } catch (_) {}
   },
 
   isTokenAlive: (t) => !!t?.el,
@@ -319,7 +362,6 @@ function togglePause() {
   if (!engine.isRunning()) return;
 
   engine.handleInput({ type: "PAUSE_TOGGLE" });
-
   if (btnPause) btnPause.textContent = engine.isPaused() ? "▶ RESUME" : "⏸ PAUSE";
 }
 
@@ -334,9 +376,7 @@ bindTap(btnReset, resetGame);
     const bpm = clamp(parseInt(bpmInput?.value || "90", 10), 60, 200);
     bpmEl.textContent = String(bpm);
 
-    if (!engine.isRunning()) {
-      resetGame();
-    }
+    if (!engine.isRunning()) resetGame();
     showFloat("SET!");
   });
 });
@@ -355,6 +395,7 @@ document.addEventListener(
 
 // 起動
 showFloat("JS OK");
+buildFretRuler();
 buildLanes();
 buildPads();
 resetGame();
