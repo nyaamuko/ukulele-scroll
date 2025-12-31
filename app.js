@@ -22,6 +22,9 @@ const bpmInput = $("bpmInput");
 const windowInput = $("windowInput");
 const customProg = $("customProg");
 
+// NEXT 表示を「右から出てきた瞬間」に合わせる（新しい chordEventId の最初の spawn で更新）
+let __lastNextChordEventId = 0;
+
 // 上から 1弦(A) → 2弦(E) → 3弦(C) → 4弦(G)
 const LANES = [
   { key: "1", hint: "1弦(A)" },
@@ -262,9 +265,15 @@ const adapter = {
     if (board) board.classList.toggle("nowReady", !!isReady);
   },
 
-  spawnToken: ({ laneIndex, fret, finger, targetTimeMs, travelMs }) => {
+  spawnToken: ({ laneIndex, fret, finger, chord, chordEventId, targetTimeMs, travelMs }) => {
     const laneEl = laneGrid?.children?.[laneIndex];
     if (!laneEl) return null;
+
+    // ★右から出てきた瞬間に NEXT を更新
+    if (chordEventId && chordEventId !== __lastNextChordEventId) {
+      __lastNextChordEventId = chordEventId;
+      setNextChordLabel(chord);
+    }
 
     const el = document.createElement("div");
     el.className = "fingerDot";
@@ -335,6 +344,7 @@ const engine = window.UkeflowEngine.createEngine(adapter);
 
 // ---- controls ----
 function resetGame() {
+  __lastNextChordEventId = 0;
   const bpm = clamp(parseInt(bpmInput?.value || "90", 10), 60, 200);
   const flowSpeed = clamp(parseFloat(speedRange?.value || "1.0"), 0.7, 1.8);
   const hitWindowMs = clamp(parseInt(windowInput?.value || "140", 10), 60, 280);

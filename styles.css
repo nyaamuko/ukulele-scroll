@@ -297,3 +297,19 @@ body{margin:0;background:radial-gradient(1200px 800px at 50% 0%, #1b2a4a 0%, var
   animation: tokenBurst 180ms ease-out both;
   outline: 4px solid rgba(255,255,255,0.55);
 }
+
+
+/* Hide small '1弦(A)' etc under 1/2/3/4 labels */
+.laneHint{display:none !important;}
+
+/* ===== Compact vertical layout (can be adjusted later) ===== */
+.laneGrid{gap:8px;}
+.lane{height:54px;border-radius:16px;}
+.laneHeader{width:40px;left:10px;}
+.laneLabel{font-size:16px;}
+.lane--string::after{height:2px;}
+.fingerDot{width:40px;height:40px;}
+.fingerChar{font-size:16px;}
+/* Reserve area for NEXT; keep but slightly slimmer */
+.nextInBoard{height:50px;}
+.nextInBoardChord{font-size:22px;min-width:56px;}
