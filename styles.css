@@ -317,3 +317,22 @@ body{margin:0;background:radial-gradient(1200px 800px at 50% 0%, #1b2a4a 0%, var
 
 /* B fix: show circle only (hide finger text) */
 .fingerChar{display:none !important;}
+
+
+/* Version badge (small, unobtrusive) */
+.verBadge{
+  position:fixed;
+  right:10px;
+  bottom:10px;
+  z-index:50;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0.4px;
+  color:rgba(255,255,255,0.55);
+  background:rgba(10,14,22,0.35);
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:999px;
+  padding:6px 10px;
+  backdrop-filter:blur(8px);
+  pointer-events:none;
+}

@@ -167,22 +167,49 @@ const FRET_COUNT = 12;
 const RIGHT_PADDING = 24;
 const __tokensLive = new Set();
 let __currentChordShown = "-";
+let __pendingChord = null;
+let __pendingSince = 0;
+const __CHORD_STABLE_MS = 120;
 
 function updateChordFromTokens() {
   // 表示したいのは「いま判定ラインへ向かっているコード」
-  // → 生存トークンのうち、HITラインに最も近いもの（xが最小）を採用
-  let best = null;
+  // → 生存トークンを chordEventId 単位でまとめ、最も左(=xが小さい)グループの chord を採用
+  let bestEventId = null;
+  let bestMinX = null;
+  let bestChord = "-";
+
   for (const t of __tokensLive) {
     if (!t || !t.el || t.hit) continue;
     if (typeof t.x !== "number") continue;
-    // 画面外(左へ消えた)は無視
+
+    // 左に消えたものは無視
     if (t.x < -120) continue;
-    if (!best || t.x < best.x) best = t;
+
+    const eid = t.chordEventId || 0;
+    const minx = t.x;
+
+    if (bestMinX === null || minx < bestMinX) {
+      bestMinX = minx;
+      bestEventId = eid;
+      bestChord = t.chordName || "-";
+    }
   }
-  const chord = best?.chordName || "-";
-  if (chord !== __currentChordShown) {
-    __currentChordShown = chord;
-    setNextChordLabel(chord); // 表示枠は NEXT のままでも、中身は「現在のコード」
+
+  // --- flicker guard (stable for N ms) ---
+  if (bestChord !== __currentChordShown) {
+    const now = performance.now();
+    if (__pendingChord !== bestChord) {
+      __pendingChord = bestChord;
+      __pendingSince = now;
+      return;
+    }
+    if (now - __pendingSince < __CHORD_STABLE_MS) return;
+
+    __currentChordShown = bestChord;
+    __pendingChord = null;
+    setNextChordLabel(bestChord);
+  } else {
+    __pendingChord = null;
   }
 }
 
@@ -325,6 +352,7 @@ const adapter = {
       hit: false,
       ready: false,
       chordName: chord || "-",
+      chordEventId: chordEventId || 0,
       x: null,
     };
 
