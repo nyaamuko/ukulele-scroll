@@ -24,10 +24,10 @@ const customProg = $("customProg");
 
 // 上から 1弦(A) → 2弦(E) → 3弦(C) → 4弦(G)
 const LANES = [
-  { key: "A", hint: "1弦(A)" },
-  { key: "E", hint: "2弦(E)" },
-  { key: "C", hint: "3弦(C)" },
-  { key: "G", hint: "4弦(G)" },
+  { key: "1", hint: "1弦(A)" },
+  { key: "2", hint: "2弦(E)" },
+  { key: "3", hint: "3弦(C)" },
+  { key: "4", hint: "4弦(G)" },
 ];
 
 const FINGERS = { I: "人", M: "中", R: "薬", P: "小" };
