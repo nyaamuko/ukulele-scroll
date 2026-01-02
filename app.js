@@ -165,25 +165,13 @@ const HIT_X = 26;
 // 見せたいフレット数
 const FRET_COUNT = 12;
 const RIGHT_PADDING = 24;
-  }
+const __tokensLive = new Set();
+let __currentChordShown = "-";
+let __pendingChord = null;
+let __pendingSince = 0;
+const __CHORD_STABLE_MS = 120;
 
-  // --- flicker guard (stable for N ms) ---
-  if (bestChord !== __currentChordShown) {
-    const now = performance.now();
-    if (__pendingChord !== bestChord) {
-      __pendingChord = bestChord;
-      __pendingSince = now;
-      return;
-    }
-    if (now - __pendingSince < __CHORD_STABLE_MS) return;
-
-    __currentChordShown = bestChord;
-    __pendingChord = null;
-    setNextChordLabel(bestChord);
-  } else {
-    __pendingChord = null;
-  }
-}
+function updateChordFromTokens() {}
 
 
 // フレット番号→X座標（等間隔）
@@ -277,7 +265,7 @@ const adapter = {
   onHUD: (s) => setHUD(s),
   onRun: (on) => setRun(on),
   onFloat: (text) => showFloat(text),
-  onNextChord: (_ch) => {}, // NEXTはspawn瞬間で更新する
+  onNextChord: (ch) => setNextChordLabel(ch),
   onFlashPads: () => flash(pads),
 
   onNowReady: (isReady) => {
@@ -288,6 +276,12 @@ const adapter = {
   spawnToken: ({ laneIndex, fret, finger, chord, chordEventId, targetTimeMs, travelMs }) => {
     const laneEl = laneGrid?.children?.[laneIndex];
     if (!laneEl) return null;
+
+    // ★右から出てきた瞬間に NEXT を更新
+    if (chordEventId && chordEventId !== __lastNextChordEventId) {
+      __lastNextChordEventId = chordEventId;
+      setNextChordLabel(chord);
+    }
 
     const el = document.createElement("div");
     el.className = "fingerDot";
@@ -322,7 +316,7 @@ const adapter = {
       x: null,
     };
 
-    
+    __tokensLive.add(obj);
     // 初回spawn時は即更新（右から出た瞬間の表示）
     
     return obj;
@@ -357,7 +351,7 @@ const adapter = {
   },
 
   removeToken: (t) => {
-    try {  } catch (_) {}
+    try { __tokensLive.delete(t); } catch (_) {}
     try { t?.el?.remove(); } catch (_) {}
     
   },
